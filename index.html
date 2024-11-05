@@ -73,7 +73,7 @@
         .content {
             flex: 1;
             display: flex;
-            gap: 20px;
+            gap: 5px;
             margin: 20px 0;
             height: calc(100vh - 200px);
         }
@@ -83,6 +83,7 @@
             .content {
                 flex-direction: row;
                 margin: 20px;
+                gap: 5px;
             }
 
             .transcript-box,
@@ -95,7 +96,7 @@
         @media (orientation: portrait) {
             .content {
                 flex-direction: column;
-                gap: 45px;
+                gap: 5px;
                 padding: 0 10px;
             }
 
@@ -108,7 +109,7 @@
         /* 針對更小的螢幕（如手機）可以設定更合適的間距 */
         @media (orientation: portrait) and (max-width: 768px) {
             .content {
-                gap: 35px;
+                gap: 5px;
             }
         }
 
@@ -579,7 +580,7 @@
                         </div>
                         
                         <div className="translation-box">
-                            <h2>中文翻譯</h2>
+                            <h2>���文翻譯</h2>
                             <div className="translation-content">
                                 {translations.map((text, index) => (
                                     <p key={index} className="translation-item">
