@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>即時語音翻譯</title>
+    
+    <!-- 載入 React -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    
+    <style>
+        .app {
+            padding: 20px;
+            max-width: 100%;
+            height: 100vh;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            text-align: center;
+            padding: 10px 0;
+            flex-shrink: 0;
+        }
+
+        .button-container {
+            position: relative;
+            display: inline-block;
+            margin: 10px 0;
+        }
+
+        .volume-circle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(76, 175, 80, 0.3);
+            z-index: -1;
+            transition: transform 0.1s ease-out;
+        }
+
+        .listening .volume-circle {
+            background: rgba(244, 67, 54, 0.3);
+        }
+
+        .listen-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 25px;
+            border: none;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            transition: background-color 0.3s;
+            position: relative;
+            z-index: 1;
+        }
+
+        .listen-button.listening {
+            background-color: #f44336;
+        }
+
+        .listen-button:hover {
+            opacity: 0.9;
+        }
+
+        .content {
+            flex: 1;
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+            height: calc(100vh - 200px);
+        }
+
+        /* 橫向螢幕 (寬度 > 高度) */
+        @media (orientation: landscape) {
+            .content {
+                flex-direction: row;
+                margin: 20px;
+            }
+
+            .transcript-box,
+            .translation-box {
+                flex: 1;
+            }
+        }
+
+        /* 直向螢幕 (高度 > 寬度) */
+        @media (orientation: portrait) {
+            .content {
+                flex-direction: column;
+                gap: 45px;
+                padding: 0 10px;
+            }
+
+            .transcript-box,
+            .translation-box {
+                flex: 1;
+            }
+        }
+
+        /* 針對更小的螢幕（如手機）可以設定更合適的間距 */
+        @media (orientation: portrait) and (max-width: 768px) {
+            .content {
+                gap: 35px;
+            }
+        }
+
+        .transcript-box,
+        .translation-box {
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .transcript-box h2,
+        .translation-box h2 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #333;
+            flex-shrink: 0;
+        }
+
+        .transcript-box p,
+        .translation-box p {
+            margin: 0;
+            line-height: 1.5;
+            font-size: 16px;
+        }
+
+        footer {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            padding: 10px 0;
+            flex-shrink: 0;
+        }
+
+        /* 確保在手機上有更好的顯示效果 */
+        @media (max-width: 768px) {
+            .app {
+                padding: 10px;
+            }
+
+            .content {
+                gap: 10px;
+                height: calc(100vh - 180px);
+            }
+
+            .transcript-box,
+            .translation-box {
+                padding: 15px;
+            }
+        }
+
+        .transcript-item,
+        .translation-item {
+            margin: 10px 0;
+            padding: 8px;
+        }
+
+        .transcript-item:last-child,
+        .translation-item:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 針對 Webkit 瀏覽器的捲動條樣式 */
+        .transcript-box::-webkit-scrollbar,
+        .translation-box::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .transcript-box::-webkit-scrollbar-track,
+        .translation-box::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .transcript-box::-webkit-scrollbar-thumb,
+        .translation-box::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .transcript-box::-webkit-scrollbar-thumb:hover,
+        .translation-box::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        .input-container {
+            margin: 20px 0;
+        }
+
+        .input-container form {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .text-input {
+            flex: 1;
+            padding: 10px 15px;
+            font-size: 16px;
+            border: 2px solid #ccc;
+            border-radius: 25px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .text-input:focus {
+            border-color: #4CAF50;
+        }
+
+        .submit-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 25px;
+            border: none;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            transition: background-color 0.3s;
+        }
+
+        .submit-button:hover {
+            background-color: #45a049;
+        }
+
+        /* 針對手機版的優化 */
+        @media (max-width: 768px) {
+            .input-container form {
+                flex-direction: column;
+                padding: 0 20px;
+            }
+
+            .text-input,
+            .submit-button {
+                width: 100%;
+            }
+        }
+
+        .editable-text {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            background-color: transparent;
+            font-size: 16px;
+            line-height: 1.5;
+            resize: vertical;
+            min-height: 40px;
+            font-family: inherit;
+            transition: border-color 0.3s, background-color 0.3s;
+            margin-bottom: 15px;
+        }
+
+        .editable-text:hover {
+            border-color: #ccc;
+            background-color: #fff;
+        }
+
+        .editable-text:focus {
+            border-color: #4CAF50;
+            background-color: #fff;
+            outline: none;
+        }
+
+        .transcript-item {
+            margin: 10px 0;
+            padding: 0;
+        }
+
+        .full-text-area {
+            width: 100%;
+            height: 100%;
+            padding: 10px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            background-color: transparent;
+            font-size: 16px;
+            line-height: 1.5;
+            resize: none;
+            font-family: inherit;
+            transition: border-color 0.3s, background-color 0.3s;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #888 #f1f1f1;
+        }
+
+        .full-text-area:hover {
+            border-color: #ccc;
+            background-color: #fff;
+        }
+
+        .full-text-area:focus {
+            border-color: #4CAF50;
+            background-color: #fff;
+            outline: none;
+        }
+
+        .translation-content {
+            flex: 1;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #888 #f1f1f1;
+            padding-right: 10px;
+        }
+
+        .transcript-box h2,
+        .translation-box h2 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #333;
+            flex-shrink: 0;
+        }
+
+        .full-text-area::-webkit-scrollbar,
+        .translation-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .full-text-area::-webkit-scrollbar-track,
+        .translation-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .full-text-area::-webkit-scrollbar-thumb,
+        .translation-content::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .full-text-area::-webkit-scrollbar-thumb:hover,
+        .translation-content::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // 錯誤邊界組件
+        class ErrorBoundary extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { hasError: false };
+            }
+
+            static getDerivedStateFromError(error) {
+                return { hasError: true };
+            }
+
+            render() {
+                if (this.state.hasError) {
+                    return <h1>發生錯誤，請重新整理頁面。</h1>;
+                }
+                return this.props.children;
+            }
+        }
+
+        function App() {
+            const [transcript, setTranscript] = React.useState('');
+            const [translations, setTranslations] = React.useState([]);
+            const [isListening, setIsListening] = React.useState(false);
+            const [volume, setVolume] = React.useState(0);
+            const recognitionRef = React.useRef(null);
+            const audioContextRef = React.useRef(null);
+            const analyserRef = React.useRef(null);
+            const microphoneRef = React.useRef(null);
+            const streamRef = React.useRef(null);
+            const [inputText, setInputText] = React.useState('');
+
+            React.useEffect(() => {
+                if (!('webkitSpeechRecognition' in window)) {
+                    alert('您的瀏覽器不支援語音辨識功能，請使用 Chrome 瀏覽器。');
+                    return;
+                }
+
+                recognitionRef.current = new window.webkitSpeechRecognition();
+                recognitionRef.current.continuous = true;
+                recognitionRef.current.interimResults = true;
+                recognitionRef.current.lang = 'en-US';
+
+                recognitionRef.current.onresult = (event) => {
+                    const current = event.resultIndex;
+                    const transcriptText = event.results[current][0].transcript;
+                    
+                    if (event.results[current].isFinal && transcriptText.trim()) {
+                        setTranscript(prev => {
+                            const newText = prev + (prev ? '\n' : '') + transcriptText;
+                            handleTranscriptEdit(newText);
+                            return newText;
+                        });
+                    }
+                };
+
+                recognitionRef.current.onerror = (event) => {
+                    console.error('語音辨識錯誤:', event.error);
+                    setIsListening(false);
+                    stopMicrophone();
+                };
+
+                recognitionRef.current.onend = () => {
+                    setIsListening(false);
+                    stopMicrophone();
+                };
+
+                return () => {
+                    stopMicrophone();
+                };
+            }, []);
+
+            const startMicrophone = async () => {
+                try {
+                    audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    streamRef.current = stream;
+                    
+                    microphoneRef.current = audioContextRef.current.createMediaStreamSource(stream);
+                    analyserRef.current = audioContextRef.current.createAnalyser();
+                    analyserRef.current.fftSize = 256;
+                    microphoneRef.current.connect(analyserRef.current);
+                    
+                    const updateVolume = () => {
+                        if (isListening && analyserRef.current) {
+                            const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+                            analyserRef.current.getByteFrequencyData(dataArray);
+                            const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                            setVolume(average);
+                            requestAnimationFrame(updateVolume);
+                        }
+                    };
+                    
+                    updateVolume();
+                } catch (error) {
+                    console.error('無法存取麥克風:', error);
+                    setIsListening(false);
+                }
+            };
+
+            const stopMicrophone = () => {
+                if (streamRef.current) {
+                    streamRef.current.getTracks().forEach(track => track.stop());
+                    streamRef.current = null;
+                }
+                if (microphoneRef.current) {
+                    microphoneRef.current.disconnect();
+                    microphoneRef.current = null;
+                }
+                if (audioContextRef.current) {
+                    audioContextRef.current.close();
+                    audioContextRef.current = null;
+                }
+                analyserRef.current = null;
+                setVolume(0);
+            };
+
+            const toggleListening = async () => {
+                if (isListening) {
+                    recognitionRef.current.stop();
+                    stopMicrophone();
+                } else {
+                    await startMicrophone();
+                    recognitionRef.current.start();
+                }
+                setIsListening(!isListening);
+            };
+
+            const translateText = async (text) => {
+                if (!text.trim()) return;
+
+                try {
+                    const response = await fetch(
+                        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|zh-TW`
+                    );
+                    const data = await response.json();
+                    if (data.responseStatus === 200 && data.responseData.translatedText.trim()) {
+                        setTranslations(prev => [...prev, data.responseData.translatedText]);
+                    } else {
+                        setTranslations(prev => [...prev, '翻譯失敗，請稍後再試']);
+                        console.error('翻譯失敗:', data.responseStatus);
+                    }
+                } catch (error) {
+                    setTranslations(prev => [...prev, '網路錯誤，請檢查連線']);
+                    console.error('翻譯錯誤:', error);
+                }
+            };
+
+            const handleInputSubmit = (e) => {
+                e.preventDefault();
+                if (inputText.trim()) {
+                    setTranscripts(prev => [...prev, inputText.trim()]);
+                    translateText(inputText.trim());
+                    setInputText('');
+                }
+            };
+
+            // 修改處理原文編輯的函數
+            const handleTranscriptEdit = (newText) => {
+                setTranscript(newText);
+                
+                // 分析修改的內容並進行翻譯
+                const lines = newText.split('\n');
+                const translationPromises = lines.map(line => {
+                    if (line.trim()) {
+                        return translateSingleLine(line.trim());
+                    }
+                    return Promise.resolve('');
+                });
+
+                // 等待所有翻譯完成
+                Promise.all(translationPromises).then(newTranslations => {
+                    setTranslations(newTranslations.filter(t => t !== ''));
+                });
+            };
+
+            // 新增單行翻譯函數
+            const translateSingleLine = async (text) => {
+                if (!text) return '';
+
+                try {
+                    const response = await fetch(
+                        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|zh-TW`
+                    );
+                    const data = await response.json();
+                    if (data.responseStatus === 200 && data.responseData.translatedText.trim()) {
+                        return data.responseData.translatedText;
+                    }
+                    return '翻譯失敗，請稍後再試';
+                } catch (error) {
+                    console.error('翻譯錯誤:', error);
+                    return '網路錯誤，請檢查連線';
+                }
+            };
+
+            return (
+                <div className="app">
+                    <header>
+                        <h1>即時語音翻譯</h1>
+                        <div className="button-container">
+                            <div 
+                                className="volume-circle" 
+                                style={{
+                                    transform: `scale(${1 + volume/100})`,
+                                    opacity: volume/255
+                                }}
+                            />
+                            <button 
+                                onClick={toggleListening}
+                                className={`listen-button ${isListening ? 'listening' : ''}`}
+                            >
+                                {isListening ? '停止聆聽' : '開始聆聽'}
+                            </button>
+                        </div>
+                    </header>
+                    
+                    <div className="content">
+                        <div className="transcript-box">
+                            <h2>英文原文</h2>
+                            <textarea
+                                value={transcript}
+                                onChange={(e) => handleTranscriptEdit(e.target.value)}
+                                className="full-text-area"
+                                placeholder="語音識別的文字將顯示在這裡..."
+                            />
+                        </div>
+                        
+                        <div className="translation-box">
+                            <h2>中文翻譯</h2>
+                            <div className="translation-content">
+                                {translations.map((text, index) => (
+                                    <p key={index} className="translation-item">
+                                        {text}
+                                    </p>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <footer>
+                        <p>請使用 Chrome 瀏覽器以獲得最佳體驗</p>
+                        <p>使用 MyMemory 翻譯服務提供支援</p>
+                    </footer>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(
+            <ErrorBoundary>
+                <App />
+            </ErrorBoundary>
+        );
+    </script>
+</body>
+</html> 
