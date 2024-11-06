@@ -916,243 +916,7 @@
                 setIsListening(!isListening);
             };
 
-            const translateText = async (text) => {
-                if (!text.trim()) return;
-
-                try {
-                    const response = await fetch(
-                        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|zh-TW`
-                    );
-                    const data = await response.json();
-                    if (data.responseStatus === 200 && data.responseData.translatedText.trim()) {
-                        setTranslations(prev => [...prev, data.responseData.translatedText]);
-                    } else {
-                        setTranslations(prev => [...prev, '翻譯失敗，請稍後再試']);
-                        console.error('翻譯失敗:', data.responseStatus);
-                    }
-                } catch (error) {
-                    setTranslations(prev => [...prev, '網路錯誤，請檢查連線']);
-                    console.error('翻譯錯誤:', error);
-                }
-            };
-
-            const handleInputSubmit = (e) => {
-                e.preventDefault();
-                if (inputText.trim()) {
-                    setTranscripts(prev => [...prev, inputText.trim()]);
-                    translateText(inputText.trim());
-                    setInputText('');
-                }
-            };
-
-            // 添加新的翻譯執行函數
-            const executeTranslation = (text) => {
-                if (!text.trim()) return;
-
-                const lines = text.split('\n');
-                const translationPromises = lines.map(line => {
-                    if (line.trim()) {
-                        return translateSingleLine(line.trim());
-                    }
-                    return Promise.resolve('');
-                });
-
-                Promise.all(translationPromises).then(newTranslations => {
-                    setTranslations(newTranslations.filter(t => t !== ''));
-                });
-            };
-
-            // 修改 handleTranscriptEdit 函數
-            const handleTranscriptEdit = (newText) => {
-                // 只在新的一行時刪除開頭空白
-                const cleanedText = newText.split('\n')
-                    .map((line, index, array) => {
-                        if (index > 0 || array.length === 1) {
-                            return line.trimStart();
-                        }
-                        return line;
-                    })
-                    .join('\n');
-                
-                setTranscript(cleanedText);
-                
-                // 清除之前的計時器
-                if (translationTimeoutRef.current) {
-                    clearTimeout(translationTimeoutRef.current);
-                }
-                
-                // 設定新的計時器
-                translationTimeoutRef.current = setTimeout(() => {
-                    executeTranslation(cleanedText);
-                }, translationDelay);
-            };
-
-            // 修改 translateSingleLine 函數
-            const translateSingleLine = async (text) => {
-                if (!text) return '';
-
-                try {
-                    console.log('使用翻譯模型:', selectedTranslationModel);
-                    
-                    switch (selectedTranslationModel) {
-                        case 'lingva':
-                            try {
-                                // 檢查是否有有效的緩存端點
-                                const cachedLingva = cachedEndpoints.lingva;
-                                if (cachedLingva.endpoint && 
-                                    (Date.now() - cachedLingva.timestamp) < ENDPOINT_CACHE_DURATION) {
-                                    try {
-                                        console.log(`使用緩存的 Lingva 端點: ${cachedLingva.endpoint}`);
-                                        const response = await fetch(
-                                            `${cachedLingva.endpoint}/api/v1/en/zh/${encodeURIComponent(text)}`,
-                                            {
-                                                headers: {
-                                                    'Accept': 'application/json',
-                                                },
-                                                mode: 'cors'
-                                            }
-                                        );
-                                        
-                                        if (response.ok) {
-                                            const data = await response.json();
-                                            if (data.translation) {
-                                                return data.translation;
-                                            }
-                                        }
-                                        // 如果緩存的端點失敗，清除緩存
-                                        setCachedEndpoints(prev => ({
-                                            ...prev,
-                                            lingva: { endpoint: null, timestamp: null }
-                                        }));
-                                    } catch (error) {
-                                        console.error('緩存端點錯誤:', error);
-                                        // 清除緩存並繼續嘗試其他端點
-                                        setCachedEndpoints(prev => ({
-                                            ...prev,
-                                            lingva: { endpoint: null, timestamp: null }
-                                        }));
-                                    }
-                                }
-
-                                // 如果沒有有效的緩存端點，嘗試所有端點
-                                const lingvaEndpoints = [
-                                    'https://lingva.ml',
-                                    'https://translate.igna.wtf',
-                                    'https://translate.plausibility.cloud',
-                                    'https://translate.jae.fi',
-                                    'https://lingva.garudalinux.org',
-                                    'https://translate.dr460nf1r3.org',
-                                    'https://translate.projectsegfau.lt',
-                                    'https://lingva.lunar.icu'
-                                ];
-
-                                for (const endpoint of lingvaEndpoints) {
-                                    try {
-                                        console.log(`嘗試使用 Lingva 端點: ${endpoint}`);
-                                        const response = await fetch(
-                                            `${endpoint}/api/v1/en/zh/${encodeURIComponent(text)}`,
-                                            {
-                                                headers: {
-                                                    'Accept': 'application/json',
-                                                },
-                                                mode: 'cors'  // 明確指定 CORS 模式
-                                            }
-                                        );
-                                        
-                                        if (!response.ok) {
-                                            console.error(`端點 ${endpoint} 返回錯誤狀態:`, response.status);
-                                            if (response.status === 523 || response.status === 503) {
-                                                continue; // 嘗試下一個端點
-                                            }
-                                            throw new Error(`HTTP error! status: ${response.status}`);
-                                        }
-                                        
-                                        const data = await response.json();
-                                        if (data.translation) {
-                                            cachedEndpoints.lingva.endpoint = endpoint;
-                                            cachedEndpoints.lingva.timestamp = Date.now();
-                                            return data.translation;
-                                        }
-                                    } catch (error) {
-                                        console.error(`Lingva 端點 ${endpoint} 出錯:`, error);
-                                        if (error.message.includes('Failed to fetch') || 
-                                            error.message.includes('CORS') || 
-                                            error.message.includes('NetworkError')) {
-                                            continue; // 嘗試下一個端點
-                                        }
-                                    }
-                                }
-                                // 如果所有端點都失敗
-                                return 'Lingva 翻譯服務暫時不可用: 建議轉用 MyMemory，但準確性較低';
-                            } catch (error) {
-                                console.error('Lingva 翻譯錯誤:', error);
-                                return 'Lingva 翻譯出現錯誤: 建議轉用 MyMemory，但準確性較低';
-                            }
-                            break;
-
-                        case 'libre':
-                            try {
-                                // 檢查是否有設定 API key
-                                if (!settings.libreTranslateApiKey) {
-                                    return 'LibreTranslate 需要 API Key: 請在設定中輸入有效的 API Key';
-                                }
-
-                                const response = await fetch('https://libretranslate.com/translate', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'Authorization': `Bearer ${settings.libreTranslateApiKey}`,
-                                    },
-                                    body: JSON.stringify({
-                                        q: text,
-                                        source: 'en',
-                                        target: 'zh',
-                                    })
-                                });
-
-                                if (!response.ok) {
-                                    if (response.status === 400) {
-                                        return 'API 設定錯誤: 請檢查 API Key 是否正確';
-                                    } else if (response.status === 403) {
-                                        return 'API 權限錯誤: API Key 無效或已過期';
-                                    } else if (response.status === 429) {
-                                        return 'API 使用超出限制: 請稍後再試';
-                                    }
-                                    throw new Error(`HTTP error! status: ${response.status}`);
-                                }
-
-                                const data = await response.json();
-                                if (data.translatedText) {
-                                    return data.translatedText;
-                                }
-                            } catch (error) {
-                                console.error('LibreTranslate 錯誤:', error);
-                                return 'LibreTranslate 翻譯出現錯誤: 建議轉用 MyMemory，但準確性較低';
-                            }
-                            break;
-
-                        case 'myMemory':
-                            return await translateWithMyMemory(text);
-
-                        case 'google':
-                            return 'Google Translate API 功能尚未實現: 建議轉用 MyMemory，但準確性較低';
-
-                        case 'azure':
-                            return 'Azure Translator API 功能尚未實現: 建議轉用 MyMemory，但準確性較低';
-
-                        case 'local':
-                            return '本地翻譯功能尚未實現: 建議轉用 MyMemory，但準確性較低';
-
-                        default:
-                            return '未知的翻譯服務: 建議轉用 MyMemory，但準確性較低';
-                    }
-                } catch (error) {
-                    console.error('翻譯錯誤:', error);
-                    return `翻譯系統錯誤: 建議轉用 MyMemory，但準確性較低`;
-                }
-            };
-
-            // 新增 MyMemory 翻譯函數
+            // 先放 MyMemory 翻譯函數
             const translateWithMyMemory = async (text) => {
                 try {
                     console.log('使用 MyMemory 翻譯:', text);
@@ -1171,16 +935,178 @@
                     const data = await response.json();
                     if (data.responseStatus === 200 && data.responseData.translatedText) {
                         const translatedText = data.responseData.translatedText.trim();
-                        // 檢查翻譯結果是否合理
-                        if (translatedText === text) {
-                            return '翻譯結果異常，請稍後再試';
-                        }
+                        console.log(`MyMemory 翻譯成功`);
                         return translatedText;
                     }
                     throw new Error('MyMemory 翻譯失敗');
                 } catch (error) {
                     console.error('MyMemory 翻譯錯誤:', error);
                     return `翻譯錯誤: ${error.message}`;
+                }
+            };
+
+            // 接著放 Lingva 翻譯函數
+            const translateWithLingva = async (text) => {
+                try {
+                    // 檢查是否有有效的緩存端點
+                    const cachedLingva = cachedEndpoints.lingva;
+                    if (cachedLingva.endpoint && 
+                        (Date.now() - cachedLingva.timestamp) < ENDPOINT_CACHE_DURATION) {
+                        try {
+                            console.log(`使用緩存的 Lingva 端點: ${cachedLingva.endpoint}`);
+                            const response = await fetch(
+                                `${cachedLingva.endpoint}/api/v1/en/zh/${encodeURIComponent(text)}`,
+                                {
+                                    headers: {
+                                        'Accept': 'application/json',
+                                    },
+                                    mode: 'cors'
+                                }
+                            );
+                            
+                            if (response.ok) {
+                                const data = await response.json();
+                                if (data.translation) {
+                                    return data.translation;
+                                }
+                            }
+                            // 如果緩存的端點失敗，清除緩存
+                            setCachedEndpoints(prev => ({
+                                ...prev,
+                                lingva: { endpoint: null, timestamp: null }
+                            }));
+                        } catch (error) {
+                            console.error('緩存端點錯誤:', error);
+                            setCachedEndpoints(prev => ({
+                                ...prev,
+                                lingva: { endpoint: null, timestamp: null }
+                            }));
+                        }
+                    }
+
+                    // 嘗試所有端點
+                    const lingvaEndpoints = [
+                        'https://translate.plausibility.cloud',
+                        'https://translate.jae.fi',
+                        'https://lingva.garudalinux.org',
+                        'https://translate.dr460nf1r3.org',
+                        'https://translate.projectsegfau.lt',
+                        'https://lingva.lunar.icu',
+                        'https://lingva.ml',
+                        'https://translate.igna.wtf',
+                    ];
+
+                    for (const endpoint of lingvaEndpoints) {
+                        try {
+                            console.log(`嘗試使用 Lingva 端點: ${endpoint}`);
+                            const response = await fetch(
+                                `${endpoint}/api/v1/en/zh/${encodeURIComponent(text)}`,
+                                {
+                                    headers: {
+                                        'Accept': 'application/json',
+                                    },
+                                    mode: 'cors'
+                                }
+                            );
+                            
+                            if (!response.ok) {
+                                console.error(`端點 ${endpoint} 返回錯誤狀態:`, response.status);
+                                continue;
+                            }
+                            
+                            const data = await response.json();
+                            if (data.translation) {
+                                setCachedEndpoints(prev => ({
+                                    ...prev,
+                                    lingva: {
+                                        endpoint: endpoint,
+                                        timestamp: Date.now()
+                                    }
+                                }));
+                                console.log(`Lingva 翻譯成功`);
+                                return data.translation;
+                            }
+                        } catch (error) {
+                            console.error(`Lingva 端點 ${endpoint} 出錯:`, error);
+                            continue;
+                        }
+                    }
+                    return 'Lingva 翻譯服務暫時不可用: 建議轉用其他翻譯模型';
+                } catch (error) {
+                    console.error('Lingva 翻譯錯誤:', error);
+                    return 'Lingva 翻譯出現錯誤: 建議轉用其他翻譯模型';
+                }
+            };
+
+            // 然後是 LibreTranslate 翻譯函數
+            const translateWithLibre = async (text) => {
+                try {
+                    if (!settings.libreTranslateApiKey) {
+                        return 'LibreTranslate 需要 API Key: 請在設定中輸入有效的 API Key';
+                    }
+
+                    const response = await fetch('https://libretranslate.com/translate', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${settings.libreTranslateApiKey}`,
+                        },
+                        body: JSON.stringify({
+                            q: text,
+                            source: 'en',
+                            target: 'zh',
+                        })
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 400) {
+                            return 'API 設定錯誤: 請檢查 API Key 是否正確';
+                        } else if (response.status === 403) {
+                            return 'API 權限錯誤: API Key 無效或已過期';
+                        } else if (response.status === 429) {
+                            return 'API 使用超出限制: 請稍後再試';
+                        }
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    if (data.translatedText) {
+                        console.log(`LibreTranslate 翻譯成功`);
+                        return data.translatedText;
+                    }
+                    return 'LibreTranslate 翻譯失敗: 建議轉用其他翻譯模型';
+                } catch (error) {
+                    console.error('LibreTranslate 錯誤:', error);
+                    return 'LibreTranslate 翻譯出現錯誤: 建議轉用其他翻譯模型';
+                }
+            };
+
+            // 最後是主要的翻譯函數
+            const translateSingleLine = async (text) => {
+                if (!text) return '';
+
+                try {
+                    console.log('使用翻譯模型:', selectedTranslationModel);
+                    
+                    switch (selectedTranslationModel) {
+                        case 'lingva':
+                            return await translateWithLingva(text);
+                        case 'libre':
+                            return await translateWithLibre(text);
+                        case 'myMemory':
+                            return await translateWithMyMemory(text);
+                        case 'google':
+                            return 'Google Translate API 功能尚未實現';
+                        case 'azure':
+                            return 'Azure Translator API 功能尚未實現';
+                        case 'local':
+                            return '本地翻譯功能尚未實現';
+                        default:
+                            return '未知的翻譯服務';
+                    }
+                } catch (error) {
+                    console.error('翻譯錯誤:', error);
+                    return `翻譯系統錯誤: 建議轉用其他翻譯模型`;
                 }
             };
 
@@ -1246,6 +1172,46 @@
                     executeTranslation(transcript);
                 }
             }, [selectedTranslationModel]); // 依賴於 selectedTranslationModel
+
+            const executeTranslation = (text) => {
+                if (!text.trim()) return;
+
+                const lines = text.split('\n');
+                const translationPromises = lines.map(line => {
+                    if (line.trim()) {
+                        return translateSingleLine(line.trim());
+                    }
+                    return Promise.resolve('');
+                });
+
+                Promise.all(translationPromises).then(newTranslations => {
+                    setTranslations(newTranslations.filter(t => t !== ''));
+                });
+            };
+
+            const handleTranscriptEdit = (newText) => {
+                // 只在新的一行時刪除開頭空白
+                const cleanedText = newText.split('\n')
+                    .map((line, index, array) => {
+                        if (index > 0 || array.length === 1) {
+                            return line.trimStart();
+                        }
+                        return line;
+                    })
+                    .join('\n');
+                
+                setTranscript(cleanedText);
+                
+                // 清除之前的計時器
+                if (translationTimeoutRef.current) {
+                    clearTimeout(translationTimeoutRef.current);
+                }
+                
+                // 設定新的計時器
+                translationTimeoutRef.current = setTimeout(() => {
+                    executeTranslation(cleanedText);
+                }, translationDelay);
+            };
 
             return (
                 <div className="app">
