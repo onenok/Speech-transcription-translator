@@ -2,7 +2,7 @@
 
 [English Version](README_EN.md)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 一個簡單的網頁應用程式，可以將語音（預設為英語）即時轉換為文字並翻譯成其他語言（預設為繁體中文）。
 
