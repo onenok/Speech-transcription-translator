@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>即時語音翻譯</title>
     
+    <!-- 添加網站圖標 -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <!-- 為 iOS 設備添加圖標 -->
+    <link rel="apple-touch-icon" href="favicon.png">
+    <!-- 為 PWA 添加圖標 -->
+    <link rel="manifest" href="manifest.json">
+    
     <!-- 載入 React -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -37,12 +45,13 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
+            width: 100%;
+            height: 100%;
+            border-radius: 25px;
             background: rgba(76, 175, 80, 0.3);
             z-index: -1;
             transition: transform 0.1s ease-out;
+            pointer-events: none;
         }
 
         .listening .volume-circle {
@@ -147,7 +156,7 @@
             flex-shrink: 0;
         }
 
-        /* 確保在手機上有更好的顯示效果 */
+        /* 確保在手機上有好的顯示效果 */
         @media (max-width: 768px) {
             .app {
                 padding: 10px;
@@ -238,7 +247,7 @@
             background-color: #45a049;
         }
 
-        /* 針對手機版的優化 */
+        /* 針對手機優化 */
         @media (max-width: 768px) {
             .input-container form {
                 flex-direction: column;
@@ -283,7 +292,6 @@
         }
 
         .full-text-area {
-            width: 100%;
             height: 100%;
             padding: 10px;
             border: 1px solid transparent;
@@ -347,6 +355,175 @@
         .translation-content::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
+
+        .settings-container {
+            margin: 10px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .settings-input {
+            width: 60px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .settings-label {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-left: 10px;
+        }
+
+        .checkbox-label {
+            font-size: 14px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .checkbox-input {
+            margin: 0;
+        }
+
+        .model-selection {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .model-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .model-label {
+            font-size: 14px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .model-select {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            min-width: 200px;
+        }
+
+        .model-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .settings-icon {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            cursor: pointer;
+            font-size: 24px;
+            color: #666;
+            z-index: 1000;
+        }
+
+        .settings-icon:hover {
+            color: #4CAF50;
+        }
+
+        .settings-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+        }
+
+        .settings-panel {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .settings-close {
+            cursor: pointer;
+            font-size: 20px;
+            color: #666;
+        }
+
+        .settings-section {
+            margin-bottom: 20px;
+        }
+
+        .settings-section h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .settings-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+
+        .api-key-input {
+            font-family: monospace;
+            letter-spacing: 2px;
+        }
+
+        .api-key-input::placeholder {
+            letter-spacing: normal;
+        }
+
+        .api-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 4px solid #ffeeba;
+            margin-top: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .api-warning::before {
+            content: "⚠️";
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
@@ -372,6 +549,98 @@
             }
         }
 
+        // 設定面板組件
+        function SettingsPanel({ isOpen, onClose, settings, onSettingChange }) {
+            if (!isOpen) return null;
+
+            return (
+                <div className="settings-modal" onClick={onClose}>
+                    <div className="settings-panel" onClick={e => e.stopPropagation()}>
+                        <div className="settings-header">
+                            <h2>設定</h2>
+                            <span className="settings-close" onClick={onClose}>×</span>
+                        </div>
+                        
+                        <div className="settings-section">
+                            <h3>語音識別設定</h3>
+                            <div className="settings-item">
+                                <label className="settings-label">
+                                    語句間隔時間（毫秒）：
+                                    <input
+                                        type="number"
+                                        className="settings-input"
+                                        value={settings.pauseThreshold}
+                                        onChange={e => onSettingChange('pauseThreshold', Math.max(0, parseInt(e.target.value) || 0))}
+                                        min="0"
+                                        step="100"
+                                    />
+                                </label>
+                            </div>
+                            
+                            <div className="settings-item">
+                                <label className="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        className="checkbox-input"
+                                        checked={settings.autoStopEnabled}
+                                        onChange={e => onSettingChange('autoStopEnabled', e.target.checked)}
+                                    />
+                                    自動停止
+                                </label>
+                                {settings.autoStopEnabled && (
+                                    <label className="settings-label">
+                                        停止延遲（毫秒）：
+                                        <input
+                                            type="number"
+                                            className="settings-input"
+                                            value={settings.autoStopDelay}
+                                            onChange={e => onSettingChange('autoStopDelay', Math.max(0, parseInt(e.target.value) || 0))}
+                                            min="0"
+                                            step="100"
+                                        />
+                                    </label>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="settings-section">
+                            <h3>翻譯設定</h3>
+                            <div className="settings-item">
+                                <label className="settings-label">
+                                    翻譯延遲時間（毫秒）：
+                                    <input
+                                        type="number"
+                                        className="settings-input"
+                                        value={settings.translationDelay}
+                                        onChange={e => onSettingChange('translationDelay', Math.max(0, parseInt(e.target.value) || 0))}
+                                        min="0"
+                                        step="100"
+                                    />
+                                </label>
+                            </div>
+                            
+                            <div className="settings-item">
+                                <label className="settings-label">
+                                    LibreTranslate API Key：
+                                    <input
+                                        type="password"  // 使用 password 類型增加安全性
+                                        className="settings-input api-key-input"
+                                        value={settings.libreTranslateApiKey || ''}
+                                        onChange={e => onSettingChange('libreTranslateApiKey', e.target.value)}
+                                        placeholder="輸入 API Key"
+                                        style={{ width: '200px' }}
+                                    />
+                                </label>
+                            </div>
+                            <p className="api-warning">
+                                本程式還在開發中, 基於數據安全理由, 不建議你使用api key, 以免遭到洩漏.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
         function App() {
             const [transcript, setTranscript] = React.useState('');
             const [translations, setTranslations] = React.useState([]);
@@ -383,6 +652,100 @@
             const microphoneRef = React.useRef(null);
             const streamRef = React.useRef(null);
             const [inputText, setInputText] = React.useState('');
+            const [pauseThreshold, setPauseThreshold] = React.useState(1000);
+            const [translationDelay, setTranslationDelay] = React.useState(500);
+            const translationTimeoutRef = React.useRef(null);
+            const [autoStopEnabled, setAutoStopEnabled] = React.useState(false);
+            const [autoStopDelay, setAutoStopDelay] = React.useState(5000);
+            const autoStopTimeoutRef = React.useRef(null);
+            const [selectedSpeechModel, setSelectedSpeechModel] = React.useState('webSpeech');
+            const [selectedTranslationModel, setSelectedTranslationModel] = React.useState('myMemory');
+            const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
+            const [settings, setSettings] = React.useState({
+                pauseThreshold: 1000,
+                translationDelay: 500,
+                autoStopEnabled: false,
+                autoStopDelay: 5000
+            });
+
+            // 添加端點緩存狀態
+            const [cachedEndpoints, setCachedEndpoints] = React.useState({
+                lingva: {
+                    endpoint: null,
+                    timestamp: null
+                }
+            });
+
+            // 端點緩存的有效期（毫秒）
+            const ENDPOINT_CACHE_DURATION = 5 * 60 * 1000; // 5 分鐘
+
+            // 定義可用的語音識別模型
+            const speechModels = {
+                webSpeech: {
+                    name: 'Web Speech API',
+                    description: '瀏覽器內建，無需安裝',
+                    status: '可用',
+                    free: true
+                },
+                vosk: {
+                    name: 'Vosk',
+                    description: '離線運作，需下載模型',
+                    status: '開發中',
+                    free: true
+                },
+                whisper: {
+                    name: 'Whisper',
+                    description: '高準確度，需下載模型',
+                    status: '開發中',
+                    free: true
+                },
+                azure: {
+                    name: 'Azure Speech',
+                    description: '企業級服務，有免費額度',
+                    status: '開發中',
+                    free: 'limited'
+                }
+            };
+
+            // 定義可用的翻譯模型
+            const translationModels = {
+                myMemory: {
+                    name: 'MyMemory',
+                    description: '免費API，無需金鑰，但準確性較低',
+                    status: '可用',
+                    free: true
+                },
+                lingva: {
+                    name: 'Lingva Translate',
+                    description: '免費API，無需金鑰',
+                    status: '可用',
+                    free: true
+                },
+                libre: {
+                    name: 'LibreTranslate',
+                    description: '需要 API 金鑰',
+                    status: '需要金鑰',
+                    free: false
+                },
+                google: {
+                    name: 'Google Translate',
+                    description: '需要API金鑰',
+                    status: '開發中',
+                    free: false
+                },
+                azure: {
+                    name: 'Azure Translator',
+                    description: '企業級服務，有免費額度',
+                    status: '開發中',
+                    free: 'limited'
+                },
+                local: {
+                    name: '本地翻譯',
+                    description: '離線運作，需下載模型',
+                    status: '開發中',
+                    free: true
+                }
+            };
 
             React.useEffect(() => {
                 if (!('webkitSpeechRecognition' in window)) {
@@ -393,36 +756,84 @@
                 recognitionRef.current = new window.webkitSpeechRecognition();
                 recognitionRef.current.continuous = true;
                 recognitionRef.current.interimResults = true;
+                recognitionRef.current.maxAlternatives = 1;
                 recognitionRef.current.lang = 'en-US';
+                
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                audioContext.latencyHint = 'interactive';
+                
+                let lastTranscriptTime = Date.now();
+                let interimTranscript = '';
+                let finalTranscript = '';
 
                 recognitionRef.current.onresult = (event) => {
-                    const current = event.resultIndex;
-                    const transcriptText = event.results[current][0].transcript;
+                    const currentTime = Date.now();
+                    let tempTranscript = '';
                     
-                    if (event.results[current].isFinal && transcriptText.trim()) {
-                        setTranscript(prev => {
-                            const newText = prev + (prev ? '\n' : '') + transcriptText;
-                            handleTranscriptEdit(newText);
-                            return newText;
-                        });
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const result = event.results[i];
+                        const transcriptText = result[0].transcript;
+                        
+                        if (result.isFinal) {
+                            if (currentTime - lastTranscriptTime >= pauseThreshold) {
+                                finalTranscript = transcriptText;
+                                setTranscript(prev => {
+                                    const newText = prev + (prev ? '\n' : '') + finalTranscript;
+                                    handleTranscriptEdit(newText);
+                                    return newText;
+                                });
+                                lastTranscriptTime = currentTime;
+                                interimTranscript = '';
+                            }
+                        } else {
+                            tempTranscript = transcriptText;
+                            
+                            setTranscript(prev => {
+                                const lines = prev.split('\n');
+                                const lastLine = lines[lines.length - 1] || '';
+                                
+                                if (!lastLine.endsWith('.') && !lastLine.endsWith('?') && !lastLine.endsWith('!')) {
+                                    lines[lines.length - 1] = tempTranscript;
+                                } else {
+                                    lines.push(tempTranscript);
+                                }
+                                
+                                return lines.join('\n');
+                            });
+                        }
                     }
                 };
 
                 recognitionRef.current.onerror = (event) => {
-                    console.error('語音辨識錯誤:', event.error);
-                    setIsListening(false);
-                    stopMicrophone();
+                    if (event.error === 'no-speech' || event.error === 'audio-capture') {
+                        if (isListening) {
+                            recognitionRef.current.stop();
+                            setTimeout(() => {
+                                if (isListening) {
+                                    recognitionRef.current.start();
+                                }
+                            }, 50);
+                        }
+                    } else {
+                        console.error('語音辨識錯誤:', event.error);
+                        setIsListening(false);
+                        stopMicrophone();
+                    }
                 };
 
                 recognitionRef.current.onend = () => {
-                    setIsListening(false);
-                    stopMicrophone();
+                    if (isListening) {
+                        recognitionRef.current.start();
+                    } else {
+                        setIsListening(false);
+                        stopMicrophone();
+                    }
                 };
 
                 return () => {
                     stopMicrophone();
                 };
-            }, []);
+            }, [pauseThreshold, isListening]);
 
             const startMicrophone = async () => {
                 try {
@@ -439,9 +850,30 @@
                         if (isListening && analyserRef.current) {
                             const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
                             analyserRef.current.getByteFrequencyData(dataArray);
-                            const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-                            setVolume(average);
+                            
+                            const values = dataArray.filter(value => value > 0);
+                            const average = values.length > 0 
+                                ? values.reduce((a, b) => a + b) / values.length 
+                                : 0;
+                            
+                            setVolume(Math.max(average, 1));
+
+                            if (autoStopEnabled && average < 1) {
+                                if (autoStopTimeoutRef.current) {
+                                    clearTimeout(autoStopTimeoutRef.current);
+                                }
+                                autoStopTimeoutRef.current = setTimeout(() => {
+                                    if (isListening) {
+                                        toggleListening();
+                                    }
+                                }, autoStopDelay);
+                            } else if (autoStopTimeoutRef.current) {
+                                clearTimeout(autoStopTimeoutRef.current);
+                            }
+
                             requestAnimationFrame(updateVolume);
+                        } else {
+                            setVolume(0);
                         }
                     };
                     
@@ -467,6 +899,10 @@
                 }
                 analyserRef.current = null;
                 setVolume(0);
+                if (autoStopTimeoutRef.current) {
+                    clearTimeout(autoStopTimeoutRef.current);
+                    autoStopTimeoutRef.current = null;
+                }
             };
 
             const toggleListening = async () => {
@@ -509,12 +945,11 @@
                 }
             };
 
-            // 修改處理原文編輯的函數
-            const handleTranscriptEdit = (newText) => {
-                setTranscript(newText);
-                
-                // 分析修改的內容並進行翻譯
-                const lines = newText.split('\n');
+            // 添加新的翻譯執行函數
+            const executeTranslation = (text) => {
+                if (!text.trim()) return;
+
+                const lines = text.split('\n');
                 const translationPromises = lines.map(line => {
                     if (line.trim()) {
                         return translateSingleLine(line.trim());
@@ -522,41 +957,370 @@
                     return Promise.resolve('');
                 });
 
-                // 等待所有翻譯完成
                 Promise.all(translationPromises).then(newTranslations => {
                     setTranslations(newTranslations.filter(t => t !== ''));
                 });
             };
 
-            // 新增單行翻譯函數
+            // 修改 handleTranscriptEdit 函數
+            const handleTranscriptEdit = (newText) => {
+                // 只在新的一行時刪除開頭空白
+                const cleanedText = newText.split('\n')
+                    .map((line, index, array) => {
+                        if (index > 0 || array.length === 1) {
+                            return line.trimStart();
+                        }
+                        return line;
+                    })
+                    .join('\n');
+                
+                setTranscript(cleanedText);
+                
+                // 清除之前的計時器
+                if (translationTimeoutRef.current) {
+                    clearTimeout(translationTimeoutRef.current);
+                }
+                
+                // 設定新的計時器
+                translationTimeoutRef.current = setTimeout(() => {
+                    executeTranslation(cleanedText);
+                }, translationDelay);
+            };
+
+            // 修改 translateSingleLine 函數
             const translateSingleLine = async (text) => {
                 if (!text) return '';
 
                 try {
-                    const response = await fetch(
-                        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|zh-TW`
-                    );
-                    const data = await response.json();
-                    if (data.responseStatus === 200 && data.responseData.translatedText.trim()) {
-                        return data.responseData.translatedText;
+                    console.log('使用翻譯模型:', selectedTranslationModel);
+                    
+                    switch (selectedTranslationModel) {
+                        case 'lingva':
+                            try {
+                                // 檢查是否有有效的緩存端點
+                                const cachedLingva = cachedEndpoints.lingva;
+                                if (cachedLingva.endpoint && 
+                                    (Date.now() - cachedLingva.timestamp) < ENDPOINT_CACHE_DURATION) {
+                                    try {
+                                        console.log(`使用緩存的 Lingva 端點: ${cachedLingva.endpoint}`);
+                                        const response = await fetch(
+                                            `${cachedLingva.endpoint}/api/v1/en/zh/${encodeURIComponent(text)}`,
+                                            {
+                                                headers: {
+                                                    'Accept': 'application/json',
+                                                },
+                                                mode: 'cors'
+                                            }
+                                        );
+                                        
+                                        if (response.ok) {
+                                            const data = await response.json();
+                                            if (data.translation) {
+                                                return data.translation;
+                                            }
+                                        }
+                                        // 如果緩存的端點失敗，清除緩存
+                                        setCachedEndpoints(prev => ({
+                                            ...prev,
+                                            lingva: { endpoint: null, timestamp: null }
+                                        }));
+                                    } catch (error) {
+                                        console.error('緩存端點錯誤:', error);
+                                        // 清除緩存並繼續嘗試其他端點
+                                        setCachedEndpoints(prev => ({
+                                            ...prev,
+                                            lingva: { endpoint: null, timestamp: null }
+                                        }));
+                                    }
+                                }
+
+                                // 如果沒有有效的緩存端點，嘗試所有端點
+                                const lingvaEndpoints = [
+                                    'https://lingva.ml',
+                                    'https://translate.igna.wtf',
+                                    'https://translate.plausibility.cloud',
+                                    'https://translate.jae.fi',
+                                    'https://lingva.garudalinux.org',
+                                    'https://translate.dr460nf1r3.org',
+                                    'https://translate.projectsegfau.lt',
+                                    'https://lingva.lunar.icu'
+                                ];
+
+                                for (const endpoint of lingvaEndpoints) {
+                                    try {
+                                        console.log(`嘗試使用 Lingva 端點: ${endpoint}`);
+                                        const response = await fetch(
+                                            `${endpoint}/api/v1/en/zh/${encodeURIComponent(text)}`,
+                                            {
+                                                headers: {
+                                                    'Accept': 'application/json',
+                                                },
+                                                mode: 'cors'  // 明確指定 CORS 模式
+                                            }
+                                        );
+                                        
+                                        if (!response.ok) {
+                                            console.error(`端點 ${endpoint} 返回錯誤狀態:`, response.status);
+                                            if (response.status === 523 || response.status === 503) {
+                                                continue; // 嘗試下一個端點
+                                            }
+                                            throw new Error(`HTTP error! status: ${response.status}`);
+                                        }
+                                        
+                                        const data = await response.json();
+                                        if (data.translation) {
+                                            cachedEndpoints.lingva.endpoint = endpoint;
+                                            cachedEndpoints.lingva.timestamp = Date.now();
+                                            return data.translation;
+                                        }
+                                    } catch (error) {
+                                        console.error(`Lingva 端點 ${endpoint} 出錯:`, error);
+                                        if (error.message.includes('Failed to fetch') || 
+                                            error.message.includes('CORS') || 
+                                            error.message.includes('NetworkError')) {
+                                            continue; // 嘗試下一個端點
+                                        }
+                                    }
+                                }
+                                // 如果所有端點都失敗
+                                return 'Lingva 翻譯服務暫時不可用: 建議轉用 MyMemory，但準確性較低';
+                            } catch (error) {
+                                console.error('Lingva 翻譯錯誤:', error);
+                                return 'Lingva 翻譯出現錯誤: 建議轉用 MyMemory，但準確性較低';
+                            }
+                            break;
+
+                        case 'libre':
+                            try {
+                                // 檢查是否有設定 API key
+                                if (!settings.libreTranslateApiKey) {
+                                    return 'LibreTranslate 需要 API Key: 請在設定中輸入有效的 API Key';
+                                }
+
+                                const response = await fetch('https://libretranslate.com/translate', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${settings.libreTranslateApiKey}`,
+                                    },
+                                    body: JSON.stringify({
+                                        q: text,
+                                        source: 'en',
+                                        target: 'zh',
+                                    })
+                                });
+
+                                if (!response.ok) {
+                                    if (response.status === 400) {
+                                        return 'API 設定錯誤: 請檢查 API Key 是否正確';
+                                    } else if (response.status === 403) {
+                                        return 'API 權限錯誤: API Key 無效或已過期';
+                                    } else if (response.status === 429) {
+                                        return 'API 使用超出限制: 請稍後再試';
+                                    }
+                                    throw new Error(`HTTP error! status: ${response.status}`);
+                                }
+
+                                const data = await response.json();
+                                if (data.translatedText) {
+                                    return data.translatedText;
+                                }
+                            } catch (error) {
+                                console.error('LibreTranslate 錯誤:', error);
+                                return 'LibreTranslate 翻譯出現錯誤: 建議轉用 MyMemory，但準確性較低';
+                            }
+                            break;
+
+                        case 'myMemory':
+                            return await translateWithMyMemory(text);
+
+                        case 'google':
+                            return 'Google Translate API 功能尚未實現: 建議轉用 MyMemory，但準確性較低';
+
+                        case 'azure':
+                            return 'Azure Translator API 功能尚未實現: 建議轉用 MyMemory，但準確性較低';
+
+                        case 'local':
+                            return '本地翻譯功能尚未實現: 建議轉用 MyMemory，但準確性較低';
+
+                        default:
+                            return '未知的翻譯服務: 建議轉用 MyMemory，但準確性較低';
                     }
-                    return '翻譯失敗，請稍後再試';
                 } catch (error) {
                     console.error('翻譯錯誤:', error);
-                    return '網路錯誤，請檢查連線';
+                    return `翻譯系統錯誤: 建議轉用 MyMemory，但準確性較低`;
                 }
             };
 
+            // 新增 MyMemory 翻譯函數
+            const translateWithMyMemory = async (text) => {
+                try {
+                    console.log('使用 MyMemory 翻譯:', text);
+                    const response = await fetch(
+                        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|zh-TW`
+                    );
+                    
+                    if (!response.ok) {
+                        if (response.status === 429) {
+                            return 'API 使用超出限制: 請稍後再試';
+                        } else {
+                            throw new Error(`MyMemory HTTP error! status: ${response.status}`);
+                        }
+                    }
+                    
+                    const data = await response.json();
+                    if (data.responseStatus === 200 && data.responseData.translatedText) {
+                        const translatedText = data.responseData.translatedText.trim();
+                        // 檢查翻譯結果是否合理
+                        if (translatedText === text) {
+                            return '翻譯結果異常，請稍後再試';
+                        }
+                        return translatedText;
+                    }
+                    throw new Error('MyMemory 翻譯失敗');
+                } catch (error) {
+                    console.error('MyMemory 翻譯錯誤:', error);
+                    return `翻譯錯誤: ${error.message}`;
+                }
+            };
+
+            // 處理設定變更
+            const handleSettingChange = (key, value) => {
+                setSettings(prev => {
+                    const newSettings = {
+                        ...prev,
+                        [key]: value
+                    };
+                    
+                    // 如果是 API key，進行加密後存儲
+                    if (key === 'libreTranslateApiKey' && value) {
+                        try {
+                            // 使用簡單的加密方法（實際應用中應使用更安全的加密方法）
+                            const encryptedKey = btoa(value);
+                            localStorage.setItem('libreTranslateApiKey', encryptedKey);
+                        } catch (error) {
+                            console.error('API key 加密錯誤');
+                        }
+                    }
+                    
+                    // 更新其他設定
+                    switch (key) {
+                        case 'pauseThreshold':
+                            setPauseThreshold(value);
+                            break;
+                        case 'translationDelay':
+                            setTranslationDelay(value);
+                            break;
+                        case 'autoStopEnabled':
+                            setAutoStopEnabled(value);
+                            break;
+                        case 'autoStopDelay':
+                            setAutoStopDelay(value);
+                            break;
+                    }
+                    
+                    return newSettings;
+                });
+            };
+
+            // 從 localStorage 讀取加密後的 API key
+            React.useEffect(() => {
+                const encryptedKey = localStorage.getItem('libreTranslateApiKey');
+                if (encryptedKey) {
+                    try {
+                        // 使用簡單的解密方法（實際用中應使用更安全的加密方法）
+                        const decryptedKey = atob(encryptedKey);
+                        setSettings(prev => ({
+                            ...prev,
+                            libreTranslateApiKey: decryptedKey
+                        }));
+                    } catch (error) {
+                        console.error('API key 解密錯誤');
+                    }
+                }
+            }, []);
+
+            React.useEffect(() => {
+                // 當翻譯模型改變時，重新執行翻譯
+                if (transcript.trim()) {
+                    executeTranslation(transcript);
+                }
+            }, [selectedTranslationModel]); // 依賴於 selectedTranslationModel
+
             return (
                 <div className="app">
+                    <div 
+                        className="settings-icon" 
+                        onClick={() => setIsSettingsOpen(true)}
+                        title="設定"
+                    >
+                        ⚙️
+                    </div>
+                    <SettingsPanel
+                        isOpen={isSettingsOpen}
+                        onClose={() => setIsSettingsOpen(false)}
+                        settings={settings}
+                        onSettingChange={handleSettingChange}
+                    />
                     <header>
                         <h1>即時語音翻譯</h1>
+                        <div className="model-selection">
+                            <div className="model-group">
+                                <label className="model-label">
+                                    語音識別模型：
+                                    <select 
+                                        className="model-select"
+                                        value={selectedSpeechModel}
+                                        onChange={(e) => setSelectedSpeechModel(e.target.value)}
+                                    >
+                                        {Object.entries(speechModels).map(([key, model]) => (
+                                            <option 
+                                                key={key} 
+                                                value={key}
+                                                disabled={model.status !== '可用'}
+                                            >
+                                                {model.name} ({model.status})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                                <div className="model-info">
+                                    {speechModels[selectedSpeechModel].description}
+                                </div>
+                            </div>
+                            
+                            <div className="model-group">
+                                <label className="model-label">
+                                    翻譯模型：
+                                    <select 
+                                        className="model-select"
+                                        value={selectedTranslationModel}
+                                        onChange={(e) => {
+                                            setSelectedTranslationModel(e.target.value);
+                                        }}
+                                    >
+                                        {Object.entries(translationModels).map(([key, model]) => (
+                                            <option 
+                                                key={key} 
+                                                value={key}
+                                                disabled={model.status == '開發中'}
+                                            >
+                                                {model.name} ({model.status})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                                <div className="model-info">
+                                    {translationModels[selectedTranslationModel].description}
+                                </div>
+                            </div>
+                        </div>
                         <div className="button-container">
                             <div 
-                                className="volume-circle" 
+                                className={`volume-circle ${isListening ? 'listening' : ''}`}
                                 style={{
-                                    transform: `scale(${1 + volume/100})`,
-                                    opacity: volume/255
+                                    transform: `translate(-50%, -50%) scale(${1 + (volume / 128)})`,
+                                    opacity: Math.min((volume / 128), 0.8)
                                 }}
                             />
                             <button 
