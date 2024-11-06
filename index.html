@@ -570,7 +570,7 @@
                     
                     <div className="content">
                         <div className="transcript-box">
-                            <h2>英文原文</h2>
+                            <h2>原文</h2>
                             <textarea
                                 value={transcript}
                                 onChange={(e) => handleTranscriptEdit(e.target.value)}
@@ -580,7 +580,7 @@
                         </div>
                         
                         <div className="translation-box">
-                            <h2>���文翻譯</h2>
+                            <h2>譯文</h2>
                             <div className="translation-content">
                                 {translations.map((text, index) => (
                                     <p key={index} className="translation-item">
