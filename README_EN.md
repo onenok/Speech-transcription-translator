@@ -1,8 +1,8 @@
-# Real-time Speech Translator
+# Speech-transcription-translator
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A simple web application that converts English speech to text in real-time and translates it to Traditional Chinese.
+A simple web application that converts speech(Default is English) to text in real-time and translates it to other languages(Default is Traditional Chinese).
 
 ## Features
 
@@ -15,7 +15,7 @@ A simple web application that converts English speech to text in real-time and t
 
 ## How to Use
 
-1. Open the website: [Website Link]
+1. Open the website: [Website Link]()
 2. Click the "Start Listening" button
 3. Allow browser microphone access
 4. Start speaking in English, text will appear in the left box
