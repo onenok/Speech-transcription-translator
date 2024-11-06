@@ -1,6 +1,6 @@
-# 語音轉錄翻譯器
+[English README](README_EN.md)
 
-[English Version](README_EN.md)
+# 語音轉錄翻譯器
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -32,14 +32,15 @@
 
 ## 注意事項
 
-- 翻譯服務使用 MyMemory API，可能有使用限制
+- MyMemory API 有使用限制
+- LibreTranslate 需要 API Key
 - 語音識別準確度取決於麥克風品質和環境噪音
 - 建議在不吵雜的環境中使用
 
 ## 技術說明
 
 - 使用 Web Speech API 進行語音識別
-- 使用 MyMemory Translation API 進行翻譯
+- 使用多種 API 進行翻譯
 - 使用 Web Audio API 實現音量視覺化
 - 使用 React 框架開發
 - 純前端實現，無需後端服務

@@ -1,6 +1,6 @@
-# Speech-transcription-translator
+[中文 README](README.md)
 
-[中文版](README.md)
+# Speech-transcription-translator
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -32,14 +32,15 @@ A simple web application that converts speech (default English) to text in real-
 
 ## Notes
 
-- Translation service uses MyMemory API, usage limits may apply
+- MyMemory API has usage limits
+- LibreTranslate needs API Key
 - Speech recognition accuracy depends on microphone quality and ambient noise
 - Recommended to use in a not noisy environment
 
 ## Technical Details
 
 - Uses Web Speech API for speech recognition
-- Uses MyMemory Translation API for translation
+- Uses multiple APIs for translation
 - Uses Web Audio API for volume visualization
 - Built with React framework
 - Frontend-only implementation, no backend required
