@@ -659,7 +659,7 @@
             const [autoStopDelay, setAutoStopDelay] = React.useState(5000);
             const autoStopTimeoutRef = React.useRef(null);
             const [selectedSpeechModel, setSelectedSpeechModel] = React.useState('webSpeech');
-            const [selectedTranslationModel, setSelectedTranslationModel] = React.useState('myMemory');
+            const [selectedTranslationModel, setSelectedTranslationModel] = React.useState('lingva');
             const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
             const [settings, setSettings] = React.useState({
                 pauseThreshold: 1000,
@@ -709,12 +709,6 @@
 
             // 定義可用的翻譯模型
             const translationModels = {
-                myMemory: {
-                    name: 'MyMemory',
-                    description: '免費API，但準確性較低&有使用限制',
-                    status: '可用',
-                    free: true
-                },
                 lingva: {
                     name: 'Lingva Translate',
                     description: '免費API',
@@ -726,6 +720,12 @@
                     description: '需要 API 金鑰',
                     status: '需要 API',
                     free: false
+                },
+                myMemory: {
+                    name: 'MyMemory',
+                    description: '備選翻譯服務（有使用限制&翻譯品質較差）',
+                    status: '備用',
+                    free: true
                 },
                 google: {
                     name: 'Google Translate',
@@ -766,41 +766,31 @@
                 let interimTranscript = '';
                 let finalTranscript = '';
 
+                // 當語音識別有結果時觸發此事件處理器
+                // 負責處理語音識別的結果,包括臨時結果和最終結果
+                // 並根據結果更新transcript狀態
                 recognitionRef.current.onresult = (event) => {
-                    const currentTime = Date.now();
-                    let tempTranscript = '';
+                    const current = event.resultIndex;
+                    const transcriptText = event.results[current][0].transcript;
                     
-                    for (let i = event.resultIndex; i < event.results.length; i++) {
-                        const result = event.results[i];
-                        const transcriptText = result[0].transcript;
-                        
-                        if (result.isFinal) {
-                            if (currentTime - lastTranscriptTime >= pauseThreshold) {
-                                finalTranscript = transcriptText;
-                                setTranscript(prev => {
-                                    const newText = prev + (prev ? '\n' : '') + finalTranscript;
-                                    handleTranscriptEdit(newText);
-                                    return newText;
-                                });
-                                lastTranscriptTime = currentTime;
-                                interimTranscript = '';
-                            }
-                        } else {
-                            tempTranscript = transcriptText;
+                    if (event.results[current].isFinal && transcriptText.trim()) {
+                        setTranscript(prev => {
+                            const lines = prev.split('\n');
+                            const lastLine = lines[lines.length - 1] || '';
                             
-                            setTranscript(prev => {
-                                const lines = prev.split('\n');
-                                const lastLine = lines[lines.length - 1] || '';
-                                
+                            // 檢查新的文字是否已經包含在最後一行中
+                            if (!lastLine.includes(transcriptText)) {
                                 if (!lastLine.endsWith('.') && !lastLine.endsWith('?') && !lastLine.endsWith('!')) {
-                                    lines[lines.length - 1] = tempTranscript;
+                                    // 如果最後一行沒有結束標點，則附加新文字
+                                    lines[lines.length - 1] = lastLine + ' ' + transcriptText;
                                 } else {
-                                    lines.push(tempTranscript);
+                                    // 如果最後一行有結束標點，則新增一行
+                                    lines.push(transcriptText);
                                 }
-                                
-                                return lines.join('\n');
-                            });
-                        }
+                            }
+                            
+                            return lines.join('\n');
+                        });
                     }
                 };
 
@@ -906,6 +896,7 @@
             };
 
             const toggleListening = async () => {
+                console.log(`before isListening: ${isListening}`);
                 if (isListening) {
                     recognitionRef.current.stop();
                     stopMicrophone();
@@ -914,9 +905,10 @@
                     recognitionRef.current.start();
                 }
                 setIsListening(!isListening);
+                console.log(`after isListening: ${isListening}`);
             };
 
-            // 先放 MyMemory 翻譯函數
+            //MyMemory 翻譯函數
             const translateWithMyMemory = async (text) => {
                 try {
                     console.log('使用 MyMemory 翻譯:', text);
@@ -945,7 +937,7 @@
                 }
             };
 
-            // 接著放 Lingva 翻譯函數
+            //Lingva 翻譯函數
             const translateWithLingva = async (text) => {
                 try {
                     // 檢查是否有有效的緩存端點
@@ -1038,7 +1030,7 @@
                 }
             };
 
-            // 然後是 LibreTranslate 翻譯函數
+            //LibreTranslate 翻譯函數
             const translateWithLibre = async (text) => {
                 try {
                     if (!settings.libreTranslateApiKey) {
@@ -1081,13 +1073,18 @@
                 }
             };
 
-            // 最後是主要的翻譯函數
+            //主要翻譯函數
             const translateSingleLine = async (text) => {
                 if (!text) return '';
 
                 try {
                     console.log('使用翻譯模型:', selectedTranslationModel);
                     
+                    // 嘗試主要翻譯服務
+                    let translation = '';
+                    let error = null;
+
+                    // 首先嘗試選定的翻譯服務
                     switch (selectedTranslationModel) {
                         case 'lingva':
                             return await translateWithLingva(text);
@@ -1106,7 +1103,7 @@
                     }
                 } catch (error) {
                     console.error('翻譯錯誤:', error);
-                    return `翻譯系統錯誤: 建議轉用其他翻譯模型`;
+                    return `翻譯錯誤: 建議轉用其他翻譯模型`;
                 }
             };
 
@@ -1261,9 +1258,7 @@
                                     <select 
                                         className="model-select"
                                         value={selectedTranslationModel}
-                                        onChange={(e) => {
-                                            setSelectedTranslationModel(e.target.value);
-                                        }}
+                                        onChange={(e) => setSelectedTranslationModel(e.target.value)}
                                     >
                                         {Object.entries(translationModels).map(([key, model]) => (
                                             <option 
@@ -1323,7 +1318,6 @@
 
                     <footer>
                         <p>請使用 Chrome 瀏覽器以獲得最佳體驗</p>
-                        <p>使用 MyMemory 翻譯服務提供支援</p>
                     </footer>
                 </div>
             );
