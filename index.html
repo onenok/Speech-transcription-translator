@@ -524,6 +524,13 @@
             content: "⚠️";
             font-size: 16px;
         }
+
+        .volume-text {
+            margin-left: 10px;
+            color: #666;
+            font-size: 14px;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
@@ -789,6 +796,7 @@
                                 }
                             }
                             
+                            handleTranscriptEdit(lines.join('\n'))
                             return lines.join('\n');
                         });
                     }
@@ -1290,6 +1298,9 @@
                             >
                                 {isListening ? '停止聆聽' : '開始聆聽'}
                             </button>
+                            <p className="volume-text">
+                                音量: {Math.round(volume)}
+                            </p>
                         </div>
                     </header>
                     

@@ -3,7 +3,7 @@
   "short_name": "語音翻譯",
   "icons": [
     {
-      "src": "favicon.svg",
+      "src": "icon.svg",
       "sizes": "any",
       "type": "image/svg+xml"
     }
