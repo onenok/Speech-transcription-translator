@@ -780,19 +780,22 @@
                     const current = event.resultIndex;
                     const transcriptText = event.results[current][0].transcript;
                     
-                    if (event.results[current].isFinal && transcriptText.trim()) {
+                    // 只在新的一行時刪除開頭空白
+                    const cleanedText = transcriptText.trimStart()
+
+                    if (event.results[current].isFinal && cleanedText.trim()) {
                         setTranscript(prev => {
                             const lines = prev.split('\n');
                             const lastLine = lines[lines.length - 1] || '';
                             
                             // 檢查新的文字是否已經包含在最後一行中
-                            if (!lastLine.includes(transcriptText)) {
+                            if (!lastLine.includes(cleanedText)) {
                                 if (!lastLine.endsWith('.') && !lastLine.endsWith('?') && !lastLine.endsWith('!')) {
                                     // 如果最後一行沒有結束標點，則附加新文字
-                                    lines[lines.length - 1] = lastLine + ' ' + transcriptText;
+                                    lines[lines.length - 1] = lastLine + ' ' + cleanedText;
                                 } else {
                                     // 如果最後一行有結束標點，則新增一行
-                                    lines.push(transcriptText);
+                                    lines.push(cleanedText);
                                 }
                             }
                             
@@ -853,7 +856,7 @@
                             const average = values.length > 0 
                                 ? values.reduce((a, b) => a + b) / values.length 
                                 : 0;
-                            
+                            console.log(`average: ${average}`);
                             setVolume(Math.max(average, 1));
 
                             if (autoStopEnabled && average < 1) {
@@ -1195,17 +1198,6 @@
             };
 
             const handleTranscriptEdit = (newText) => {
-                // 只在新的一行時刪除開頭空白
-                const cleanedText = newText.split('\n')
-                    .map((line, index, array) => {
-                        if (index > 0 || array.length === 1) {
-                            return line.trimStart();
-                        }
-                        return line;
-                    })
-                    .join('\n');
-                
-                setTranscript(cleanedText);
                 
                 // 清除之前的計時器
                 if (translationTimeoutRef.current) {
