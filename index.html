@@ -815,7 +815,7 @@
                                 }
                             }, 50);
                         }
-                    } else {
+                    } else if (event.error !== 'aborted') {
                         console.error('語音辨識錯誤:', event.error);
                         setIsListening(false);
                         stopMicrophone();
@@ -823,6 +823,7 @@
                 };
 
                 recognitionRef.current.onend = () => {
+                    console.log('onend isListening: ', isListening);
                     if (isListening) {
                         recognitionRef.current.start();
                     } else {
@@ -915,8 +916,8 @@
                     await startMicrophone();
                     recognitionRef.current.start();
                 }
+                console.log(`after isListening: ${!isListening}`);
                 setIsListening(!isListening);
-                console.log(`after isListening: ${isListening}`);
             };
 
             //MyMemory 翻譯函數
@@ -1206,7 +1207,7 @@
                 
                 // 設定新的計時器
                 translationTimeoutRef.current = setTimeout(() => {
-                    executeTranslation(cleanedText);
+                    executeTranslation(newText);
                 }, translationDelay);
             };
 
