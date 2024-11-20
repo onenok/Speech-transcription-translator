@@ -818,6 +818,7 @@
                     } else if (event.error !== 'aborted') {
                         console.error('語音辨識錯誤:', event.error);
                         setIsListening(false);
+                        console.log('///onerror stopMicrophone');
                         stopMicrophone();
                     }
                 };
@@ -828,16 +829,19 @@
                         recognitionRef.current.start();
                     } else {
                         setIsListening(false);
+                        console.log('///onend stopMicrophone');
                         stopMicrophone();
                     }
                 };
 
                 return () => {
+                    console.log('///App unmount stopMicrophone');
                     stopMicrophone();
                 };
             }, [pauseThreshold, isListening]);
 
             const startMicrophone = async () => {
+                console.log('//startMicrophone');
                 try {
                     audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -887,32 +891,100 @@
             };
 
             const stopMicrophone = () => {
+                // 獲取調用堆疊信息
+                const stackTrace = new Error().stack;
+                const callerInfo = stackTrace.split('\n')[2];
+                console.log('//stopMicrophone 被調用，調用者:', callerInfo);
+
+                // 先停止音訊流
                 if (streamRef.current) {
-                    streamRef.current.getTracks().forEach(track => track.stop());
-                    streamRef.current = null;
+                    try {
+                        const tracks = streamRef.current.getTracks();
+                        console.log('音訊軌道數量:', tracks.length);
+                        tracks.forEach((track, index) => {
+                            console.log(`停止音訊軌道 ${index}:`, track.kind, track.enabled, track.readyState);
+                            track.stop();
+                            console.log(`音訊軌道 ${index} 停止後狀態:`, track.readyState);
+                        });
+                        streamRef.current = null;
+                        console.log('音訊流已停止並清空');
+                    } catch (error) {
+                        console.error('停止音訊流時發生錯誤:', error);
+                    }
                 }
+
+                // 斷開麥克風連接
                 if (microphoneRef.current) {
-                    microphoneRef.current.disconnect();
-                    microphoneRef.current = null;
+                    try {
+                        console.log('麥克風斷開前狀態:', microphoneRef.current.numberOfOutputs);
+                        microphoneRef.current.disconnect();
+                        microphoneRef.current = null;
+                        console.log('麥克風已斷開並清空');
+                    } catch (error) {
+                        console.error('斷開麥克風時發生錯誤:', error);
+                    }
                 }
+
+                // 關閉音訊上下文
                 if (audioContextRef.current) {
-                    audioContextRef.current.close();
-                    audioContextRef.current = null;
+                    try {
+                        console.log('音訊上下文關閉前狀態:', audioContextRef.current.state);
+                        audioContextRef.current.close().then(() => {
+                            console.log('音訊上下文已成功關閉');
+                        }).catch(error => {
+                            console.error('關閉音訊上下文時發生錯誤:', error);
+                        });
+                        audioContextRef.current = null;
+                        console.log('音訊上下文已清空');
+                    } catch (error) {
+                        console.error('處理音訊上下文時發生錯誤:', error);
+                    }
                 }
-                analyserRef.current = null;
+
+                // 清除分析器
+                if (analyserRef.current) {
+                    try {
+                        console.log('清除分析器前狀態:', analyserRef.current.numberOfInputs);
+                        analyserRef.current = null;
+                        console.log('分析器已清空');
+                    } catch (error) {
+                        console.error('清除分析器時發生錯誤:', error);
+                    }
+                }
+
+                // 重置音量
                 setVolume(0);
+                console.log('音量已重置為 0');
+
+                // 清除自動停止計時器
                 if (autoStopTimeoutRef.current) {
-                    clearTimeout(autoStopTimeoutRef.current);
-                    autoStopTimeoutRef.current = null;
+                    try {
+                        clearTimeout(autoStopTimeoutRef.current);
+                        autoStopTimeoutRef.current = null;
+                        console.log('自動停止計時器已清除');
+                    } catch (error) {
+                        console.error('清除自動停止計時器時發生錯誤:', error);
+                    }
                 }
+
+                // 最後檢查所有組件狀態
+                console.log('最終狀態檢查:', {
+                    stream: streamRef.current ? '仍在運行' : '已停止',
+                    microphone: microphoneRef.current ? '仍在運行' : '已停止',
+                    audioContext: audioContextRef.current ? '仍在運行' : '已停止',
+                    analyser: analyserRef.current ? '仍在運行' : '已停止',
+                    autoStopTimeout: autoStopTimeoutRef.current ? '仍在運行' : '已停止'
+                });
             };
 
             const toggleListening = async () => {
                 console.log(`before isListening: ${isListening}`);
                 if (isListening) {
+                    console.log('///toggle stop');
                     recognitionRef.current.stop();
                     stopMicrophone();
                 } else {
+                    console.log('///toggle start');
                     await startMicrophone();
                     recognitionRef.current.start();
                 }
