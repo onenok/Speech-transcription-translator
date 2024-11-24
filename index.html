@@ -35,9 +35,15 @@
         }
 
         .button-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .button-wrapper {
             position: relative;
             display: inline-block;
-            margin: 10px 0;
         }
 
         .volume-circle {
@@ -526,10 +532,10 @@
         }
 
         .volume-text {
-            margin-left: 10px;
+            margin-top: 10px;
+            text-align: center;
             color: #666;
             font-size: 14px;
-            display: inline-block;
         }
     </style>
 </head>
@@ -640,7 +646,7 @@
                                 </label>
                             </div>
                             <p className="api-warning">
-                                本程式還在開發中, 基於數據安全理由, 不建議你使用api key, 以免遭到洩漏.
+                                本程式還在開發中, 基於數據安全理由, 不建議你使用api key, 以免遭到洩露.
                             </p>
                         </div>
                     </div>
@@ -665,6 +671,7 @@
             const [autoStopEnabled, setAutoStopEnabled] = React.useState(false);
             const [autoStopDelay, setAutoStopDelay] = React.useState(5000);
             const autoStopTimeoutRef = React.useRef(null);
+            const autoStopNoSpeechTimeoutRef = React.useRef(null);
             const [selectedSpeechModel, setSelectedSpeechModel] = React.useState('webSpeech');
             const [selectedTranslationModel, setSelectedTranslationModel] = React.useState('lingva');
             const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
@@ -777,6 +784,16 @@
                 // 負責處理語音識別的結果,包括臨時結果和最終結果
                 // 並根據結果更新transcript狀態
                 recognitionRef.current.onresult = (event) => {
+                    try {
+                        // 清除可能存在的舊計時器
+                        if (autoStopNoSpeechTimeoutRef.current) {
+                            console.log('清除自動停止計時器');
+                            clearTimeout(autoStopNoSpeechTimeoutRef.current);
+                        }
+                    } catch (error) {
+                        console.error('清除自動停止計時器時發生錯誤:', error);
+                    }
+                    
                     const current = event.resultIndex;
                     const transcriptText = event.results[current][0].transcript;
                     
@@ -791,7 +808,7 @@
                             // 檢查新的文字是否已經包含在最後一行中
                             if (!lastLine.includes(cleanedText)) {
                                 if (!lastLine.endsWith('.') && !lastLine.endsWith('?') && !lastLine.endsWith('!')) {
-                                    // 如果最後一行沒有結束標點，則附加新文字
+                                    // 如果最後一行沒有結束標點，則附加文字
                                     lines[lines.length - 1] = lastLine + ' ' + cleanedText;
                                 } else {
                                     // 如果最後一行有結束標點，則新增一行
@@ -799,7 +816,6 @@
                                 }
                             }
                             
-                            handleTranscriptEdit(lines.join('\n'))
                             return lines.join('\n');
                         });
                     }
@@ -807,83 +823,124 @@
 
                 recognitionRef.current.onerror = (event) => {
                     if (event.error === 'no-speech' || event.error === 'audio-capture') {
-                        if (isListening) {
+                        // 如果啟用了自動停止功能，且檢測到無語音輸入
+                        if (autoStopEnabled) {
+                            console.log('檢測到無講話，建立自動停止計時器');
+                            // 建立新的計時器
+                            autoStopNoSpeechTimeoutRef.current = setTimeout(() => {
+                                console.log('執行自動停止（無講話）');
+                                setIsListening(false);
+                            }, autoStopDelay);
+                        }
+                        
+                        if (!isListening) {
                             recognitionRef.current.stop();
-                            setTimeout(() => {
-                                if (isListening) {
-                                    recognitionRef.current.start();
-                                }
-                            }, 50);
                         }
                     } else if (event.error !== 'aborted') {
                         console.error('語音辨識錯誤:', event.error);
                         setIsListening(false);
                         console.log('///onerror stopMicrophone');
-                        stopMicrophone();
                     }
                 };
 
                 recognitionRef.current.onend = () => {
                     console.log('onend isListening: ', isListening);
                     if (isListening) {
-                        recognitionRef.current.start();
+                        if(!recognitionRef.current) {
+                            recognitionRef.current.start();
+                        }
                     } else {
                         setIsListening(false);
-                        console.log('///onend stopMicrophone');
-                        stopMicrophone();
+                        console.log('///onend stopMicrophone','isListening: ', isListening, 'recognitionRef.current: ', recognitionRef.current);
                     }
                 };
 
                 return () => {
-                    console.log('///App unmount stopMicrophone');
-                    stopMicrophone();
+                    //console.log('///App unmount stopMicrophone');
+                    //stopMicrophone();
                 };
             }, [pauseThreshold, isListening]);
 
             const startMicrophone = async () => {
                 console.log('//startMicrophone');
                 try {
-                    audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    streamRef.current = stream;
+                    // 1. 先創建音頻上下文
+                    try {
+                        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+                        audioContextRef.current.latencyHint = 'interactive';
+                    } catch (error) {
+                        console.error('無法建立音頻上下文:', error);
+                    }finally {
+                        console.log('audioContextRef.current: ', audioContextRef.current);
+                    }
                     
-                    microphoneRef.current = audioContextRef.current.createMediaStreamSource(stream);
-                    analyserRef.current = audioContextRef.current.createAnalyser();
-                    analyserRef.current.fftSize = 256;
-                    microphoneRef.current.connect(analyserRef.current);
+                    // 2. 獲取媒體流
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        streamRef.current = stream;
+                    } catch (error) {
+                        console.error('無法獲取媒體流:', error);
+                    }finally {
+                        console.log('streamRef.current: ', streamRef.current);
+                    }
                     
-                    const updateVolume = () => {
-                        if (isListening && analyserRef.current) {
-                            const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
-                            analyserRef.current.getByteFrequencyData(dataArray);
-                            
-                            const values = dataArray.filter(value => value > 0);
-                            const average = values.length > 0 
-                                ? values.reduce((a, b) => a + b) / values.length 
-                                : 0;
-                            console.log(`average: ${average}`);
-                            setVolume(Math.max(average, 1));
-
-                            if (autoStopEnabled && average < 1) {
-                                if (autoStopTimeoutRef.current) {
-                                    clearTimeout(autoStopTimeoutRef.current);
-                                }
-                                autoStopTimeoutRef.current = setTimeout(() => {
-                                    if (isListening) {
-                                        toggleListening();
-                                    }
-                                }, autoStopDelay);
-                            } else if (autoStopTimeoutRef.current) {
-                                clearTimeout(autoStopTimeoutRef.current);
-                            }
-
-                            requestAnimationFrame(updateVolume);
-                        } else {
-                            setVolume(0);
+                    // 3. 確保音頻上下文和流都存在後再創建其他組件
+                        if (audioContextRef.current && streamRef.current) {
+                            // 4. 創建麥克風源
+                        microphoneRef.current = audioContextRef.current.createMediaStreamSource(streamRef.current);
+                        
+                        // 5. 創建分析器
+                        analyserRef.current = audioContextRef.current.createAnalyser();
+                        analyserRef.current.fftSize = 256;
+                        
+                        // 6. 連接麥克風到分析器
+                        if (microphoneRef.current && analyserRef.current) {
+                            microphoneRef.current.connect(analyserRef.current);
                         }
-                    };
-                    
-                    updateVolume();
+                        
+                        // 7. 開始音量更新循環
+                        const updateVolume = () => {
+                            if (isListening && analyserRef.current) {
+                                const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+                                analyserRef.current.getByteFrequencyData(dataArray);
+                                
+                                const values = dataArray.filter(value => value > 0);
+                                const average = values.length > 0 
+                                    ? values.reduce((a, b) => a + b) / values.length 
+                                    : 0;
+                                setVolume(Math.max(average, 0));
+
+                                // 處理自動停止邏輯
+                                if (autoStopEnabled) {
+                                    if (average < 1) {
+                                        // 如果沒有聲音且計時器還未建立，則建立計時器
+                                        if (!autoStopTimeoutRef.current) {
+                                            console.log('檢測到無聲音，建立自動停止計時器');
+                                            autoStopTimeoutRef.current = setTimeout(() => {
+                                                console.log('執行自動停止(無聲音)');
+                                                setIsListening(false);
+                                            }, autoStopDelay);
+                                        }
+                                    } else {
+                                        // 如果檢測到聲音且計時器存在，則清除計時器
+                                        if (autoStopTimeoutRef.current) {
+                                            console.log('檢測到聲音，清除自動停止計時器');
+                                            clearTimeout(autoStopTimeoutRef.current);
+                                            autoStopTimeoutRef.current = null;
+                                        }
+                                    }
+                                }
+
+                                requestAnimationFrame(updateVolume);
+                            } else {
+                                setVolume(0);
+                            }
+                        };
+                        
+                        updateVolume();
+                    } else {
+                        throw new Error(`音頻上下文或媒體流創建失敗 streamRef.current: ${streamRef.current}, audioContextRef.current: ${audioContextRef.current}`);
+                    }
                 } catch (error) {
                     console.error('無法存取麥克風:', error);
                     setIsListening(false);
@@ -967,6 +1024,16 @@
                     }
                 }
 
+                if (autoStopNoSpeechTimeoutRef.current) {
+                    try {
+                        clearTimeout(autoStopNoSpeechTimeoutRef.current);
+                        autoStopNoSpeechTimeoutRef.current = null;
+                        console.log('自動停止計時器已清除');
+                    } catch (error) {
+                        console.error('清除自動停止計時器時發生錯誤:', error);
+                    }
+                }
+
                 // 最後檢查所有組件狀態
                 console.log('最終狀態檢查:', {
                     stream: streamRef.current ? '仍在運行' : '已停止',
@@ -978,19 +1045,32 @@
             };
 
             const toggleListening = async () => {
-                console.log(`before isListening: ${isListening}`);
-                if (isListening) {
-                    console.log('///toggle stop');
-                    recognitionRef.current.stop();
-                    stopMicrophone();
-                } else {
-                    console.log('///toggle start');
-                    await startMicrophone();
-                    recognitionRef.current.start();
-                }
-                console.log(`after isListening: ${!isListening}`);
-                setIsListening(!isListening);
+                console.log(`######### toggleListening #########`);
+                await setIsListening(!isListening);
             };
+
+            React.useEffect(() => {
+                const handleListeningChange = async () => {
+                    try {
+                        if (isListening) {
+                            console.log('///toggle start');
+                            await startMicrophone();
+                            recognitionRef.current.start();
+                        } else {
+                            console.log('///toggle stop');
+                            recognitionRef.current.stop();
+                            await stopMicrophone();
+                        }
+                    } catch (error) {
+                        console.error('處理聆聽狀態變更時發生錯誤:', error);
+                        setIsListening(false);
+                    } finally {
+                        console.log(`----------- toggleListening end -----------`);
+                    }
+                };
+
+                handleListeningChange();
+            }, [isListening]); // 只在 isListening 改變時觸發
 
             //MyMemory 翻譯函數
             const translateWithMyMemory = async (text) => {
@@ -1030,8 +1110,9 @@
                         (Date.now() - cachedLingva.timestamp) < ENDPOINT_CACHE_DURATION) {
                         try {
                             console.log(`使用緩存的 Lingva 端點: ${cachedLingva.endpoint}`);
+                            console.log(`${cachedLingva.endpoint}/api/v1/en/zh_HANT/${encodeURIComponent(text)}`);
                             const response = await fetch(
-                                `${cachedLingva.endpoint}/api/v1/en/zh/${encodeURIComponent(text)}`,
+                                `${cachedLingva.endpoint}/api/v1/en/zh_HANT/${encodeURIComponent(text)}`,
                                 {
                                     headers: {
                                         'Accept': 'application/json',
@@ -1075,8 +1156,9 @@
                     for (const endpoint of lingvaEndpoints) {
                         try {
                             console.log(`嘗試使用 Lingva 端點: ${endpoint}`);
+                            console.log(`${endpoint}/api/v1/en/zh_HANT/${encodeURIComponent(text)}`);
                             const response = await fetch(
-                                `${endpoint}/api/v1/en/zh/${encodeURIComponent(text)}`,
+                                `${endpoint}/api/v1/en/zh_HANT/${encodeURIComponent(text)}`,
                                 {
                                     headers: {
                                         'Accept': 'application/json',
@@ -1271,7 +1353,7 @@
             };
 
             const handleTranscriptEdit = (newText) => {
-                
+                setTranscript(newText);
                 // 清除之前的計時器
                 if (translationTimeoutRef.current) {
                     clearTimeout(translationTimeoutRef.current);
@@ -1350,19 +1432,21 @@
                             </div>
                         </div>
                         <div className="button-container">
-                            <div 
-                                className={`volume-circle ${isListening ? 'listening' : ''}`}
-                                style={{
-                                    transform: `translate(-50%, -50%) scale(${1 + (volume / 128)})`,
-                                    opacity: Math.min((volume / 128), 0.8)
-                                }}
-                            />
-                            <button 
-                                onClick={toggleListening}
-                                className={`listen-button ${isListening ? 'listening' : ''}`}
-                            >
-                                {isListening ? '停止聆聽' : '開始聆聽'}
-                            </button>
+                            <div className="button-wrapper">
+                                <div 
+                                    className={`volume-circle ${isListening ? 'listening' : ''}`}
+                                    style={{
+                                        transform: `translate(-50%, -50%) scale(${1 + (volume / 128)})`,
+                                        opacity: Math.min((volume / 128), 0.8)
+                                    }}
+                                />
+                                <button 
+                                    onClick={toggleListening}
+                                    className={`listen-button ${isListening ? 'listening' : ''}`}
+                                >
+                                    {isListening ? '停止聆聽' : '開始聆聽'}
+                                </button>
+                            </div>
                             <p className="volume-text">
                                 音量: {Math.round(volume)}
                             </p>
