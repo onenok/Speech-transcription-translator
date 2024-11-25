@@ -656,7 +656,7 @@
 
         function App() {
             const [transcript, setTranscript] = React.useState('');
-            const [translations, setTranslations] = React.useState([]);
+            const [translations, setTranslations] = React.useState('');
             const [isListening, setIsListening] = React.useState(false);
             const [volume, setVolume] = React.useState(0);
             const recognitionRef = React.useRef(null);
@@ -784,6 +784,7 @@
                 // 負責處理語音識別的結果,包括臨時結果和最終結果
                 // 並根據結果更新transcript狀態
                 recognitionRef.current.onresult = (event) => {
+                    console.log('ONRESULT')
                     try {
                         // 清除可能存在的舊計時器
                         if (autoStopNoSpeechTimeoutRef.current) {
@@ -796,7 +797,7 @@
                     
                     const current = event.resultIndex;
                     const transcriptText = event.results[current][0].transcript;
-                    
+                    console.log('transcriptText:', transcriptText)
                     // 只在新的一行時刪除開頭空白
                     const cleanedText = transcriptText.trimStart()
 
@@ -816,7 +817,8 @@
                                 }
                             }
                             
-                            return lines.join('\n');
+                            handleTranscriptEdit(lines.join('\n'));
+                            return;
                         });
                     }
                 };
@@ -1328,7 +1330,9 @@
                     }
                 }
             }, []);
-
+            React.useEffect(() => {
+                console.log('transcript:', transcript)
+            },[transcript])
             React.useEffect(() => {
                 // 當翻譯模型改變時，重新執行翻譯
                 if (transcript.trim()) {
@@ -1337,7 +1341,10 @@
             }, [selectedTranslationModel]); // 依賴於 selectedTranslationModel
 
             const executeTranslation = (text) => {
-                if (!text.trim()) return;
+                if (!text.trim()) {
+                    setTranslations('');
+                    return;
+                };
 
                 const lines = text.split('\n');
                 const translationPromises = lines.map(line => {
@@ -1348,11 +1355,18 @@
                 });
 
                 Promise.all(translationPromises).then(newTranslations => {
-                    setTranslations(newTranslations.filter(t => t !== ''));
+                    console.log('newTranslations:', newTranslations)
+                    const currentTranscript = document.querySelector('.transcript-box textarea');
+                    if (currentTranscript.value.trim()) {
+                        setTranslations(newTranslations.filter(t => t !== '').join('\n'));
+                    }
                 });
             };
-
+            React.useEffect(() => {
+                console.log('translations:', translations)
+            }, [translations])
             const handleTranscriptEdit = (newText) => {
+                console.log('$$$$$$$$$$$handleTranscriptEdit$$$$$$$$$$$', newText)
                 setTranscript(newText);
                 // 清除之前的計時器
                 if (translationTimeoutRef.current) {
@@ -1361,6 +1375,7 @@
                 
                 // 設定新的計時器
                 translationTimeoutRef.current = setTimeout(() => {
+                    console.log('newText:', newText)
                     executeTranslation(newText);
                 }, translationDelay);
             };
@@ -1467,11 +1482,7 @@
                         <div className="translation-box">
                             <h2>譯文</h2>
                             <div className="translation-content">
-                                {translations.map((text, index) => (
-                                    <p key={index} className="translation-item">
-                                        {text}
-                                    </p>
-                                ))}
+                                <p>{translations}</p>
                             </div>
                         </div>
                     </div>
