@@ -18,6 +18,8 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
     
+    <script src="https://unpkg.com/compromise"></script>
+    
     <style>
         .app {
             padding: 20px;
@@ -761,6 +763,27 @@
                 }
             };
 
+            // 修改 sentenceStateRef 的初始
+            const sentenceStateRef = React.useRef({
+                isComplete: true  // 只保留這個必要的狀態
+            });
+
+            // 添加 ref 來追蹤最新值
+            const transcriptRef = React.useRef(transcript);
+            const translationsRef = React.useRef(translations);
+
+            // 添加一個 ref 來追蹤時間戳
+            const timeStampsRef = React.useRef([]);
+
+            // 當 state 更新時同步更新 ref
+            React.useEffect(() => {
+                transcriptRef.current = transcript;
+            }, [transcript]);
+
+            React.useEffect(() => {
+                translationsRef.current = translations;
+            }, [translations]);
+
             React.useEffect(() => {
                 if (!('webkitSpeechRecognition' in window)) {
                     alert('您的瀏覽器不支援語音辨識功能，請使用 Chrome 瀏覽器。');
@@ -797,28 +820,113 @@
                     
                     const current = event.resultIndex;
                     const transcriptText = event.results[current][0].transcript;
-                    console.log('transcriptText:', transcriptText)
-                    // 只在新的一行時刪除開頭空白
-                    const cleanedText = transcriptText.trimStart()
+                    console.log('onresult transcriptText:', transcriptText)
+                    // 添加自動標點符號的函數
+                    const addPunctuation = (text) => {
+                        const currentTime = Date.now();
+                        
+                        // 更新時間戳數組
+                        if (timeStampsRef.current.length <= current) {
+                            timeStampsRef.current.push(currentTime);
+                        }
+                        
+                        // 計算停頓時間
+                        const pauseTime = current > 0 
+                            ? currentTime - timeStampsRef.current[current - 1]
+                            : 0;
+                        
+                        console.log('currentTime:', currentTime);
+                        console.log('previousTime:', current > 0 ? timeStampsRef.current[current - 1] : currentTime);
+                        console.log('pauseTime:', pauseTime);
+                        
+                        let processedText = text;
+                        const questionWords = /(?:do|is|am|are|was|were|can|could|will|would|shall|should|may|might|what|who|where|when|why|how|which)$/i;
+                            
+                        // 修改 isSentenceComplete 函數
+                        const isSentenceComplete = (text) => {
+                            const doc = window.nlp(text);
+                            
+                            // 取得句子的詞性結構
+                            const terms = doc.terms().out('tags');
+                            
+                            // 檢查是否有主語和謂語
+                            const hasSubject = terms.some(term => term.Noun || term.Pronoun);
+                            const hasVerb = terms.some(term => term.Verb);
+                            
+                            // 檢查最後一個詞的詞性
+                            const lastTerm = terms[terms.length - 1];
+                            const isIncomplete = lastTerm && (
+                                lastTerm.Preposition ||
+                                lastTerm.Conjunction ||
+                                lastTerm.Determiner
+                            );
+                            console.log('hasSubject:', hasSubject);
+                            console.log('hasVerb:', hasVerb);
+                            console.log('isIncomplete:', isIncomplete);
+                            return hasSubject && hasVerb && !isIncomplete;
+                        };
 
-                    if (event.results[current].isFinal && cleanedText.trim()) {
+                        // 修改 updateSentenceState 函數
+                        const updateSentenceState = () => {
+                            const isLongPause = pauseTime > 2000;
+                            const isMediumPause = pauseTime > 800;
+                            const isShortPause = pauseTime > 300;
+                            
+                            const currentSentenceComplete = isSentenceComplete(processedText);
+                            
+                            if (isLongPause && currentSentenceComplete) {
+                                processedText = processedText.trim() + '.';
+                                sentenceStateRef.current.isComplete = true;
+                            } else if (isMediumPause && !currentSentenceComplete) {
+                                if (!processedText.endsWith(',')) {
+                                    processedText = processedText.trim() + ',';
+                                }
+                                sentenceStateRef.current.isComplete = false;
+                            } else if (isShortPause) {
+                                sentenceStateRef.current.isComplete = false;
+                            }
+                        };
+
+                        // 處理標點符號
+                        if (processedText.trim()) {
+                            if (!processedText.match(/[.!?,]$/)) {
+                                if (questionWords.test(processedText.split(' ')[0])) {
+                                    processedText = processedText.trim() + '?';
+                                    sentenceStateRef.current.isComplete = true;
+                                } else {
+                                    console.log('first word is not question word, its:', processedText.split(' ')[0])
+                                    updateSentenceState();
+                                }
+                            }
+                        }
+                        
+                        return processedText;
+                    };
+                    
+                    // 清理文字並添加標點
+                    const cleanedText = transcriptText.trimStart();
+                    const textWithPunctuation = addPunctuation(cleanedText);
+                    
+                    if (event.results[current].isFinal && textWithPunctuation.trim()) {
                         setTranscript(prev => {
+                            if (!prev) return textWithPunctuation;
+                            
                             const lines = prev.split('\n');
                             const lastLine = lines[lines.length - 1] || '';
                             
-                            // 檢查新的文字是否已經包含在最後一行中
-                            if (!lastLine.includes(cleanedText)) {
-                                if (!lastLine.endsWith('.') && !lastLine.endsWith('?') && !lastLine.endsWith('!')) {
-                                    // 如果最後一行沒有結束標點，則附加文字
-                                    lines[lines.length - 1] = lastLine + ' ' + cleanedText;
+                            // 使用 ref 來檢查句子狀態
+                            if (!sentenceStateRef.current.isComplete && lastLine) {
+                                lines[lines.length - 1] = lastLine.replace(/[,.]$/, '') + ' ' + textWithPunctuation;
+                            } else if (!lastLine.includes(cleanedText)) {
+                                if (lastLine.match(/[.!?]$/)) {
+                                    lines.push(textWithPunctuation);
                                 } else {
-                                    // 如果最後一行有結束標點，則新增一行
-                                    lines.push(cleanedText);
+                                    lines[lines.length - 1] = lastLine + ' ' + textWithPunctuation;
                                 }
                             }
                             
                             handleTranscriptEdit(lines.join('\n'));
-                            return;
+                            return lines.join('\n');
                         });
                     }
                 };
@@ -848,8 +956,21 @@
                 recognitionRef.current.onend = () => {
                     console.log('onend isListening: ', isListening);
                     if (isListening) {
-                        if(!recognitionRef.current) {
+                        try {
+                            // 如果仍在監聽狀態，則重新啟動語音識別
+                            console.log('重新啟動語音識別');
                             recognitionRef.current.start();
+                        } catch (error) {
+                            console.error('重新啟動語音識別時發生錯誤:', error);
+                            // 如果出錯，重新初始化語音識別
+                            if (!recognitionRef.current) {
+                                recognitionRef.current = new window.webkitSpeechRecognition();
+                                recognitionRef.current.continuous = true;
+                                recognitionRef.current.interimResults = true;
+                                recognitionRef.current.maxAlternatives = 1;
+                                recognitionRef.current.lang = 'en-US';
+                                recognitionRef.current.start();
+                            }
                         }
                     } else {
                         setIsListening(false);
@@ -1044,6 +1165,9 @@
                     analyser: analyserRef.current ? '仍在運行' : '已停止',
                     autoStopTimeout: autoStopTimeoutRef.current ? '仍在運行' : '已停止'
                 });
+
+                // 在停止監聽時清除時間戳
+                timeStampsRef.current = []; // 清除時間戳數組
             };
 
             const toggleListening = async () => {
@@ -1331,7 +1455,7 @@
                 }
             }, []);
             React.useEffect(() => {
-                console.log('transcript:', transcript)
+                console.log('react useEffect transcript:', transcript)
             },[transcript])
             React.useEffect(() => {
                 // 當翻譯模型改變時，重新執行翻譯
@@ -1355,7 +1479,7 @@
                 });
 
                 Promise.all(translationPromises).then(newTranslations => {
-                    console.log('newTranslations:', newTranslations)
+                    console.log('executeTranslation newTranslations:', newTranslations)
                     const currentTranscript = document.querySelector('.transcript-box textarea');
                     if (currentTranscript.value.trim()) {
                         setTranslations(newTranslations.filter(t => t !== '').join('\n'));
@@ -1363,7 +1487,7 @@
                 });
             };
             React.useEffect(() => {
-                console.log('translations:', translations)
+                console.log('react en to zh:', translations)
             }, [translations])
             const handleTranscriptEdit = (newText) => {
                 console.log('$$$$$$$$$$$handleTranscriptEdit$$$$$$$$$$$', newText)
@@ -1375,7 +1499,7 @@
                 
                 // 設定新的計時器
                 translationTimeoutRef.current = setTimeout(() => {
-                    console.log('newText:', newText)
+                    console.log('react handleTranscriptEdit newText:', newText)
                     executeTranslation(newText);
                 }, translationDelay);
             };
