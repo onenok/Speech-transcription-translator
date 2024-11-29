@@ -844,25 +844,38 @@
                             
                         // 修改 isSentenceComplete 函數
                         const isSentenceComplete = (text) => {
+                            console.log('vvvvvvvvvvvvvvvvvvvvvvvvvvvv')
                             const doc = window.nlp(text);
-                            
                             // 取得句子的詞性結構
                             const terms = doc.terms().out('tags');
-                            
+                            console.log('terms:', terms);
                             // 檢查是否有主語和謂語
-                            const hasSubject = terms.some(term => term.Noun || term.Pronoun);
-                            const hasVerb = terms.some(term => term.Verb);
+                            const hasSubject = terms.some(term => 
+                                Object.entries(term).some(([key, tags]) => 
+                                    tags.includes('Noun') || tags.includes('Pronoun')
+                                )
+                            );
+                            
+                            const hasVerb = terms.some(term => 
+                                Object.entries(term).some(([key, tags]) => 
+                                    tags.includes('Verb')
+                                )
+                            );
                             
                             // 檢查最後一個詞的詞性
                             const lastTerm = terms[terms.length - 1];
-                            const isIncomplete = lastTerm && (
-                                lastTerm.Preposition ||
-                                lastTerm.Conjunction ||
-                                lastTerm.Determiner
-                            );
+                            console.log('lastTerm:', lastTerm);
+                            
+                            const isIncomplete = lastTerm && 
+                                Object.entries(lastTerm).some(([key, tags]) => 
+                                    tags.includes('Preposition') || 
+                                    tags.includes('Conjunction') || 
+                                    tags.includes('Determiner')
+                                );
                             console.log('hasSubject:', hasSubject);
                             console.log('hasVerb:', hasVerb);
                             console.log('isIncomplete:', isIncomplete);
+                            console.log('^^^^^^^^^^^^^^^^^^^^^^^^^')
                             return hasSubject && hasVerb && !isIncomplete;
                         };
 
@@ -1166,7 +1179,7 @@
                     autoStopTimeout: autoStopTimeoutRef.current ? '仍在運行' : '已停止'
                 });
 
-                // 在停止監聽時清除時間戳
+                // 在停止監聽清除時間戳
                 timeStampsRef.current = []; // 清除時間戳數組
             };
 
