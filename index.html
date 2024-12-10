@@ -226,19 +226,9 @@
             margin: 0 auto;
         }
 
-        .text-input {
-            flex: 1;
-            padding: 10px 15px;
-            font-size: 16px;
-            border: 2px solid #ccc;
-            border-radius: 25px;
-            outline: none;
-            transition: border-color 0.3s;
-        }
+        
 
-        .text-input:focus {
-            border-color: #4CAF50;
-        }
+  
 
         .submit-button {
             padding: 10px 20px;
@@ -262,37 +252,11 @@
                 padding: 0 20px;
             }
 
-            .text-input,
             .submit-button {
                 width: 100%;
             }
         }
 
-        .editable-text {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid transparent;
-            border-radius: 4px;
-            background-color: transparent;
-            font-size: 16px;
-            line-height: 1.5;
-            resize: vertical;
-            min-height: 40px;
-            font-family: inherit;
-            transition: border-color 0.3s, background-color 0.3s;
-            margin-bottom: 15px;
-        }
-
-        .editable-text:hover {
-            border-color: #ccc;
-            background-color: #fff;
-        }
-
-        .editable-text:focus {
-            border-color: #4CAF50;
-            background-color: #fff;
-            outline: none;
-        }
 
         .transcript-item {
             margin: 10px 0;
@@ -309,20 +273,12 @@
             line-height: 1.5;
             resize: none;
             font-family: inherit;
-            transition: border-color 0.3s, background-color 0.3s;
             overflow-y: auto;
             scrollbar-width: thin;
             scrollbar-color: #888 #f1f1f1;
         }
 
-        .full-text-area:hover {
-            border-color: #ccc;
-            background-color: #fff;
-        }
-
         .full-text-area:focus {
-            border-color: #4CAF50;
-            background-color: #fff;
             outline: none;
         }
 
@@ -687,7 +643,7 @@
             // 添加端點緩存狀態
             const [cachedEndpoints, setCachedEndpoints] = React.useState({
                 lingva: {
-                    endpoint: null,
+                    endpoint: 'https://translate.plausibility.cloud',
                     timestamp: null
                 }
             });
@@ -820,7 +776,9 @@
                     
                     const current = event.resultIndex;
                     const transcriptText = event.results[current][0].transcript;
-                    console.log('onresult transcriptText:', transcriptText)
+                    const speechIsFinal = event.results[current].isFinal;
+                    console.log('%c onresult transcriptText: ' + transcriptText, speechIsFinal ? 'background-color: green;' : 'background-color: yellow; color: black;')
+                    
                     // 添加自動標點符號的函數
                     const addPunctuation = (text) => {
                         const currentTime = Date.now();
@@ -835,20 +793,20 @@
                             ? currentTime - timeStampsRef.current[current - 1]
                             : 0;
                         
-                        console.log('currentTime:', currentTime);
-                        console.log('previousTime:', current > 0 ? timeStampsRef.current[current - 1] : currentTime);
-                        console.log('pauseTime:', pauseTime);
+                        console.log('%c currentTime: ' + currentTime, speechIsFinal ? 'background-color: green;' : 'background-color: yellow; color: black;')
+                        console.log('%c previousTime: ' + (current > 0 ? timeStampsRef.current[current - 1] : currentTime), speechIsFinal ? 'background-color: green;' : 'background-color: yellow; color: black;')
+                        console.log('%c pauseTime: ' + pauseTime, speechIsFinal ? 'background-color: green;' : 'background-color: yellow; color: black;')
                         
                         let processedText = text;
                         const questionWords = /(?:do|is|am|are|was|were|can|could|will|would|shall|should|may|might|what|who|where|when|why|how|which)$/i;
                             
                         // 修改 isSentenceComplete 函數
                         const isSentenceComplete = (text) => {
-                            console.log('vvvvvvvvvvvvvvvvvvvvvvvvvvvv')
+                            console.log('%c ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓', speechIsFinal ? 'background-color: green;' : 'background-color: yellow; color: black;')
                             const doc = window.nlp(text);
                             // 取得句子的詞性結構
                             const terms = doc.terms().out('tags');
-                            console.log('terms:', terms);
+                            console.log('%c terms: ', speechIsFinal ? 'background-color: green;' : 'background-color: yellow; color: black;', terms)
                             // 檢查是否有主語和謂語
                             const hasSubject = terms.some(term => 
                                 Object.entries(term).some(([key, tags]) => 
@@ -864,7 +822,7 @@
                             
                             // 檢查最後一個詞的詞性
                             const lastTerm = terms[terms.length - 1];
-                            console.log('lastTerm:', lastTerm);
+                            console.log('%c lastTerm: ', speechIsFinal ? 'background-color: green;' : 'background-color: yellow; color: black;', lastTerm)
                             
                             const isIncomplete = lastTerm && 
                                 Object.entries(lastTerm).some(([key, tags]) => 
@@ -872,10 +830,10 @@
                                     tags.includes('Conjunction') || 
                                     tags.includes('Determiner')
                                 );
-                            console.log('hasSubject:', hasSubject);
-                            console.log('hasVerb:', hasVerb);
-                            console.log('isIncomplete:', isIncomplete);
-                            console.log('^^^^^^^^^^^^^^^^^^^^^^^^^')
+                            console.log('%c hasSubject: ' + hasSubject, speechIsFinal ? 'background-color: green;' : 'background-color: yellow; color: black;')
+                            console.log('%c hasVerb: ' + hasVerb, speechIsFinal ? 'background-color: green;' : 'background-color: yellow; color: black;')
+                            console.log('%c isIncomplete: ' + isIncomplete, speechIsFinal ? 'background-color: green;' : 'background-color: yellow; color: black;')
+                            console.log('%c ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑', speechIsFinal ? 'background-color: green;' : 'background-color: yellow; color: black;')
                             return hasSubject && hasVerb && !isIncomplete;
                         };
 
@@ -903,11 +861,11 @@
                         // 處理標點符號
                         if (processedText.trim()) {
                             if (!processedText.match(/[.!?,]$/)) {
-                                if (questionWords.test(processedText.split(' ')[0])) {
+                                if (false && questionWords.test(processedText.split(' ')[0])) {
                                     processedText = processedText.trim() + '?';
                                     sentenceStateRef.current.isComplete = true;
                                 } else {
-                                    console.log('first word is not question word, its:', processedText.split(' ')[0])
+                                    console.log('%c first word is not question word, its: ' + processedText.split(' ')[0], speechIsFinal ? 'background-color: green;' : 'background-color: yellow; color: black;')
                                     updateSentenceState();
                                 }
                             }
@@ -920,7 +878,7 @@
                     const cleanedText = transcriptText.trimStart();
                     const textWithPunctuation = addPunctuation(cleanedText);
                     
-                    if (event.results[current].isFinal && textWithPunctuation.trim()) {
+                    if (speechIsFinal && textWithPunctuation.trim()) {
                         setTranscript(prev => {
                             if (!prev) return textWithPunctuation;
                             
