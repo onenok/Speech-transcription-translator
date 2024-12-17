@@ -1,0 +1,463 @@
+.app {
+    padding: 20px;
+    max-width: 100%;
+    height: 100vh;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+}
+
+header {
+    text-align: center;
+    padding: 10px 0;
+    flex-shrink: 0;
+}
+
+.button-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 10px 0;
+}
+
+.button-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.volume-circle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    border-radius: 25px;
+    background: rgba(76, 175, 80, 0.3);
+    z-index: -1;
+    transition: transform 0.1s ease-out;
+    pointer-events: none;
+}
+
+.listening .volume-circle {
+    background: rgba(244, 67, 54, 0.3);
+}
+
+.listen-button {
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 25px;
+    border: none;
+    cursor: pointer;
+    background-color: #4CAF50;
+    color: white;
+    transition: background-color 0.3s;
+    position: relative;
+    z-index: 1;
+}
+
+.listen-button.listening {
+    background-color: #f44336;
+}
+
+.listen-button:hover {
+    opacity: 0.9;
+}
+
+.content {
+    flex: 1;
+    display: flex;
+    gap: 5px;
+    margin: 20px 0;
+    height: calc(100vh - 200px);
+}
+
+/* 橫向螢幕 (寬度 > 高度) */
+@media (orientation: landscape) {
+    .content {
+        flex-direction: row;
+        margin: 20px;
+        gap: 5px;
+    }
+
+    .transcript-box,
+    .translation-box {
+        flex: 1;
+    }
+}
+
+/* 直向螢幕 (高度 > 寬度) */
+@media (orientation: portrait) {
+    .content {
+        flex-direction: column;
+        gap: 5px;
+        padding: 0 10px;
+    }
+
+    .transcript-box,
+    .translation-box {
+        flex: 1;
+    }
+}
+
+/* 針對更小的螢幕（如手機）可以設定更合適的間距 */
+@media (orientation: portrait) and (max-width: 768px) {
+    .content {
+        gap: 5px;
+    }
+}
+
+.transcript-box,
+.translation-box {
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.transcript-box h2,
+.translation-box h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+    flex-shrink: 0;
+}
+
+.transcript-box p,
+.translation-box p {
+    margin: 0;
+    line-height: 1.5;
+    font-size: 16px;
+}
+
+footer {
+    text-align: center;
+    color: #666;
+    font-size: 14px;
+    padding: 10px 0;
+    flex-shrink: 0;
+}
+
+/* 確保在手機上有好的顯示效果 */
+@media (max-width: 768px) {
+    .app {
+        padding: 10px;
+    }
+
+    .content {
+        gap: 10px;
+        height: calc(100vh - 180px);
+    }
+
+    .transcript-box,
+    .translation-box {
+        padding: 15px;
+    }
+}
+
+.transcript-item,
+.translation-item {
+    margin: 10px 0;
+    padding: 8px;
+}
+
+.transcript-item:last-child,
+.translation-item:last-child {
+    margin-bottom: 0;
+}
+
+/* 針對 Webkit 瀏覽器的捲動條樣式 */
+.transcript-box::-webkit-scrollbar,
+.translation-box::-webkit-scrollbar {
+    width: 8px;
+}
+
+.transcript-box::-webkit-scrollbar-track,
+.translation-box::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.transcript-box::-webkit-scrollbar-thumb,
+.translation-box::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.transcript-box::-webkit-scrollbar-thumb:hover,
+.translation-box::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.input-container {
+    margin: 20px 0;
+}
+
+.input-container form {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+
+
+
+
+.submit-button {
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 25px;
+    border: none;
+    cursor: pointer;
+    background-color: #4CAF50;
+    color: white;
+    transition: background-color 0.3s;
+}
+
+.submit-button:hover {
+    background-color: #45a049;
+}
+
+/* 針對手機優化 */
+@media (max-width: 768px) {
+    .input-container form {
+        flex-direction: column;
+        padding: 0 20px;
+    }
+
+    .submit-button {
+        width: 100%;
+    }
+}
+
+
+.transcript-item {
+    margin: 10px 0;
+    padding: 0;
+}
+
+.full-text-area {
+    height: 100%;
+    padding: 10px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background-color: transparent;
+    font-size: 16px;
+    line-height: 1.5;
+    resize: none;
+    font-family: inherit;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #888 #f1f1f1;
+}
+
+.full-text-area:focus {
+    outline: none;
+}
+
+
+.transcript-box h2,
+.translation-box h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+    flex-shrink: 0;
+}
+
+.full-text-area::-webkit-scrollbar {
+    width: 8px;
+}
+
+.full-text-area::-webkit-scrollbar-track{
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.full-text-area::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.full-text-area::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.settings-container {
+    margin: 10px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.settings-input {
+    width: 60px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.settings-label {
+    font-size: 14px;
+    color: #666;
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: 10px;
+}
+
+.checkbox-label {
+    font-size: 14px;
+    color: #666;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.checkbox-input {
+    margin: 0;
+}
+
+.model-selection {
+    margin: 10px 0;
+    padding: 10px;
+    background-color: #f5f5f5;
+    border-radius: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+.model-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.model-label {
+    font-size: 14px;
+    color: #333;
+    font-weight: bold;
+}
+
+.model-select {
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    min-width: 200px;
+}
+
+.model-info {
+    font-size: 12px;
+    color: #666;
+    margin-top: 2px;
+}
+
+.settings-icon {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    cursor: pointer;
+    font-size: 24px;
+    color: #666;
+    z-index: 1000;
+}
+
+.settings-icon:hover {
+    color: #4CAF50;
+}
+
+.settings-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1001;
+}
+
+.settings-panel {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.settings-close {
+    cursor: pointer;
+    font-size: 20px;
+    color: #666;
+}
+
+.settings-section {
+    margin-bottom: 20px;
+}
+
+.settings-section h3 {
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.settings-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 10px;
+}
+
+.api-key-input {
+    font-family: monospace;
+    letter-spacing: 2px;
+}
+
+.api-key-input::placeholder {
+    letter-spacing: normal;
+}
+
+.api-warning {
+    background-color: #fff3cd;
+    color: #856404;
+    padding: 12px;
+    border-radius: 6px;
+    border-left: 4px solid #ffeeba;
+    margin-top: 10px;
+    font-size: 14px;
+    line-height: 1.5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.api-warning::before {
+    content: "⚠️";
+    font-size: 16px;
+}
+
+.volume-text {
+    margin-top: 10px;
+    text-align: center;
+    color: #666;
+    font-size: 14px;
+}

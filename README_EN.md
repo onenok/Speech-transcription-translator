@@ -1,6 +1,8 @@
+# Speech-transcription-translator
+
 [中文 README](README.md)
 
-# Speech-transcription-translator
+[table of contents](tableOfContents_EN.md)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -44,7 +46,3 @@ A simple web application that converts speech (default English) to text in real-
 - Uses Web Audio API for volume visualization
 - Built with React framework
 - Frontend-only implementation, no backend required
-
-## License
-
-This project is licensed under the MIT License
