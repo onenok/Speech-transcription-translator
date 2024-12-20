@@ -7,6 +7,17 @@
     flex-direction: column;
 }
 
+.logo-container {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 100;
+}
+.logo {
+    width: 100%;
+    height: auto;
+}
+
 header {
     text-align: center;
     padding: 10px 0;
@@ -460,4 +471,37 @@ footer {
     text-align: center;
     color: #666;
     font-size: 14px;
+}
+
+/* 需要添加的樣式 */
+.brand-colors {
+    --primary: #4A90E2;    /* 主色調 */
+    --text-primary: #333333; /* 主要文字 */
+    --text-secondary: #666666; /* 次要文字 */
+    --background: #FFFFFF;  /* 背景色 */
+}
+
+/* 統一界面風格 */
+.app-container {
+    font-family: Arial, sans-serif;
+    color: var(--text-primary);
+}
+
+/* 針對演講場景的特殊優化 */
+.lecture-mode {
+    /* 更大的字體 */
+    --text-size-large: 24px;
+    /* 高對比度 */
+    --contrast-background: #000000;
+    --contrast-text: #FFFFFF;
+}
+
+/* 新增專注模式 */
+.focus-mode {
+    /* 隱藏非必要元素 */
+    .settings-icon,
+    .model-selection,
+    .volume-text {
+        display: none;
+    }
 }
